@@ -9,7 +9,9 @@ A dummy Flask-Redis webapp to count stuff, instrumented with Datadog for Metrics
 
 1. install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 2. Create a [Datadog Org](https://app.datadoghq.com/signup) and get an [API key](https://app.datadoghq.com/organization-settings/api-keys)
-3. Update `.env`file with the aforementioned API key
+3. In the `.env`file, update
+    * `DD_API_KEY` with the aforementioned API key
+    * `DD_SITE` with the Datadog site you use - see our [user doc](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference 
 
 
 From a terminal at the root of the `redis-sandbox` folder:
