@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+
+  flask:
+    container_name: flask
+    build: flask/build/.
+    volumes:
+      - ./flask:/flask
+      - ../static:/data/static:ro
+    environment:
+      - DD_SERVICE=flask
+      - DD_ENV
+      - DD_VERSION
+      - DD_LOGS_INJECTION=true
+      - DD_TRACE_ANALYTICS_ENABLED=true
+      - DD_AGENT_HOST=datadog
+      - DD_TRACE_AGENT_PORT=8126
+      - REDIS_HOST=redis
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "python", "service": "flask", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "\\[?\\d{4}-\\d{2}-\\d{2}"}]}]'
+    ports:
+      - 8000:8000
+
+    command: ddtrace-run gunicorn -w 2 -b :8000 --timeout 60 wsgi:app
+
+
+  redis:
+    container_name: redis
+    image: "redis"
+    expose:
+      - 6379
+    volumes:
+      - redis:/data
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "redis", "service": "redis"}]'
+      com.datadoghq.ad.check_names: '["redisdb"]'
+      com.datadoghq.ad.init_configs: '[{}]'
+      com.datadoghq.ad.instances: '[{"host":"%%host%%","port":"6379"}]'
+    environment:
+      - DD_SERVICE
+      - DD_ENV
+      - DD_VERSION
+
+  datadog:
+    container_name: datadog
+    image: "datadog/agent:7.41.0"
+    environment:
+      - DD_API_KEY
+      - DD_TAGS
+      - DD_ENV
+      - DD_APM_ENABLE=true
+      - DD_APM_NON_LOCAL_TRAFFIC=true
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_LOGS_CONFIG_AUTO_MULTI_LINE_DETECTION=true
+#      - DD_AC_EXCLUDE=name:datadog
+      - DD_LOG_LEVEL=error
+    expose:
+      - 8126
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - ./datadog/run:/opt/datadog-agent/run:rw
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "datadog-agent", "service": "datadog"}]'
+
+volumes:
+  redis:
+    driver: local
