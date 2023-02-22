@@ -32,7 +32,7 @@ From a(nother) terminal at the root of the `redis-sandbox` folder:
 
 
 ```bash
-curl "http://localhost"               
+curl "http://localhost:8000"
 <p>Hello, World!</p>%    
 ```
 
