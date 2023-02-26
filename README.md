@@ -2,7 +2,7 @@
 
 A dummy webapp, for users click on a button and track the number of click as a vanity metric. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
 
-![app overview](/readme/app.png)
+![app overview](/app.png)
 
 
 **Flask** handles cookie-based authentication, web page template rendering and some back-end plumbery. When users click in **Browser**
