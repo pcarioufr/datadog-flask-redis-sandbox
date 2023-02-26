@@ -7,12 +7,8 @@ import os
 
 from app.logs import log
 
-
 import random
 
-def random_id():
-    rid = ''.join((random.choice('1234567890abcdef') for i in range(8)))
-    return rid
 
 redis_client = redis.Redis(
             host=app.config["REDIS_HOST"],
@@ -75,3 +71,15 @@ def count(key=None):
     log.info("count={}".format(count))
 
     return flask.jsonify(key=key, count=count)
+
+
+@app.route("/broken", methods=['GET'])
+def broken():
+
+    r = random.random()
+
+    if r > 0.5 :
+        log.error("oops")
+        return flask.jsonify(), 500
+
+    return flask.jsonify(), 204

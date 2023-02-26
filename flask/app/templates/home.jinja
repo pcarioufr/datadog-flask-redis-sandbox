@@ -82,24 +82,46 @@
 <body>
 
     <h2> Welcome, {{user_id}}.</h2>
-    <div>
-        <button id="ok-button"> <span> {{user_init_count}} </span> </button>
-        <button id="error-button"> </button>
+    <div flex>
+        <button counter id="ok-button"> <span> {{user_init_count}} </span> </button>
+        <button broken id="broken-button"> </button>
     </div>
     <p> click me :) </p>
 
     <script>
 
         let okbutton = document.getElementById("ok-button")
-        let counter = button.querySelector("span")
+        let okcounter = okbutton.querySelector("span")
 
         okbutton.onclick = ( _ => {
 
             fetch( "/count/{{user_id}}", { method: "POST" } )
-            .then( r => r.json() )
-            .then( data => counter.innerText = data.count );
+            .then( response => response.json() )
+            .then( data => okcounter.innerText = data.count );
 
         })
+
+
+        let brokenbutton = document.getElementById("broken-button")
+
+        brokenbutton.onclick = ( _ => {
+
+            fetch( "/broken" )
+            .then( response => {
+                if (response.status >= 500) {
+                    console.error("ooops !")
+                    brokenbutton.setAttribute("error","");
+                    brokenbutton.removeAttribute("ok");
+                }
+                else {
+                    console.log("phew...")
+                    brokenbutton.setAttribute("ok","");
+                    brokenbutton.removeAttribute("error");
+                }
+            })
+
+        })
+
 
     </script>
 

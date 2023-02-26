@@ -4,8 +4,10 @@ html {
 }
 
 :root {
-   --green: #0c6f50;
-   --beige: #ece2ce;
+    --red: #f24a30;
+    --green: #0c6f50;
+    --dgreen: #094633;
+    --beige: #ece2ce;
 }
 
 
@@ -39,6 +41,12 @@ p {
     margin: 0px auto auto auto
 }
 
+div[flex] {
+    display: flex;
+    width: fit-content;
+    height: fit-content;
+    gap: 20px;
+}
 
 button {
     
@@ -64,6 +72,27 @@ button {
     
 }
 
+button[counter] {
+    background: var(--beige);    
+}
+
+button[counter] span {
+    color: var(--green);;
+    font-size: 128px;
+    text-align: center;
+    margin:auto
+}
+
+button[broken] {
+    background: var(--beige);    
+}
+button[broken][ok] {
+    background: var(--dgreen) !important;
+}
+button[broken][error] {
+    background: var(--red) !important;    
+}
+
 
 button:hover{
     box-shadow: 5px 5px 2px 0 rgba(0, 0, 0, 0.4);
@@ -71,11 +100,4 @@ button:hover{
 
 button:active{
     box-shadow: 1px 1px 2px 0 rgba(0, 0, 0, 0.4);
-}
-
-button span {
-    color: var(--green);;
-    font-size: 128px;
-    text-align: center;
-    margin:auto
 }

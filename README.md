@@ -2,9 +2,13 @@
 
 A dummy webapp, for users click on a button and track the number of click as a vanity metric. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
 
-![app overview](https://github.com/pcarioufr/datadog-flask-redis-sandbox/blob/master/readme/app.png?raw=true)
+![app overview](/readme/app.png)
 
-Users click the big-button in **Browser**, and number of clicks for that user is stored in **Redis**. **Flask** handles cookie-based authentication, web page template rendering and some back-end plumbery. 
+
+**Flask** handles cookie-based authentication, web page template rendering and some back-end plumbery. When users click in **Browser**
+* the left-hand-side big button: it increments a click-counter for that user, stored in **Redis**.
+* the right-hand-side big button: it has 50% chance to generate a 500 error.
+
 
 
 ## How To 
