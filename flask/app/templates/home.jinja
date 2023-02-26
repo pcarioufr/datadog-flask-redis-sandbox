@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <!-- DEBUG INFO -->
+    <!-- env={{dd_env}} -->
+    <!-- version={{dd_version}} -->
+    <!-- site={{dd_site}} -->
+    <!-- token={{clientToken}} -->
+    <!-- user_id={{user_id}} -->
+    <!-- user_email={{user_email}} -->
+    <!-- user_init_count={{user_init_count}} -->
+    <!-- is_anonymous={{is_anonymous}} -->
+
+
+<!-- See https://docs.datadoghq.com/logs/log_collection/javascript -->
+<!--     https://docs.datadoghq.com/real_user_monitoring/browser  -->
+<script 
+    type="text/javascript" 
+    src="https://www.datadoghq-browser-agent.com/datadog-logs-v4.js">
+</script>
+
+<script
+    src="https://www.datadoghq-browser-agent.com/datadog-rum-v4.js"
+    type="text/javascript">
+</script>
+
+<script>
+
+        window.DD_LOGS &&
+        DD_LOGS.init({
+            site: '{{dd_site}}',
+            clientToken: '{{clientToken}}',
+            env: '{{dd_env}}',
+            version: '{{dd_version}}',
+            service: 'browser',
+            forwardErrorsToLogs: true,
+            sampleRate: 100,
+            forwardConsoleLogs: 'all'
+        })
+
+        window.DD_RUM && window.DD_RUM.init({
+            site: '{{dd_site}}',
+            clientToken: '{{clientToken}}',
+            env: '{{dd_env}}',
+            version: '{{dd_version}}',
+            service: 'browser',
+            applicationId: '{{applicationId}}',
+            sampleRate: 100,
+            sessionReplaySampleRate: 100,
+            trackInteractions: true,
+            trackResources: true,
+            trackLongTasks: true,
+            defaultPrivacyLevel: 'mask-user-input',
+            allowedTracingUrls: [ _ => { return true } ] // https://docs.datadoghq.com/real_user_monitoring/connect_rum_and_traces/?tab=browserrum
+        });
+
+        window.DD_RUM &&
+        window.DD_RUM.startSessionReplayRecording() ;
+
+        window.DD_LOGS && DD_LOGS.setGlobalContextProperty('team', "sandbox")
+
+        window.DD_RUM && window.DD_RUM.setUser({ 
+            id: '{{user_id}}', 
+            email: '{{user_email}}', 
+            anonymous: '{{is_anonymous}}'
+        })
+        // window.DD_RUM && window.DD_RUM.addRumGlobalContext('domain', '{{domain}}');
+
+    </script>
+
+
+    <meta charset="utf-8">
+    <title>sandbox</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}" />
+
+
+</div>
+
+</head>
+
+<body>
+
+    <h2> Welcome, {{user_id}}.</h2>
+    <div>
+        <button id="ok-button"> <span> {{user_init_count}} </span> </button>
+        <button id="error-button"> </button>
+    </div>
+    <p> click me :) </p>
+
+    <script>
+
+        let okbutton = document.getElementById("ok-button")
+        let counter = button.querySelector("span")
+
+        okbutton.onclick = ( _ => {
+
+            fetch( "/count/{{user_id}}", { method: "POST" } )
+            .then( r => r.json() )
+            .then( data => counter.innerText = data.count );
+
+        })
+
+    </script>
+
+</body>
+</html>

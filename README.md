@@ -1,20 +1,28 @@
-## Redis Sandbox
+## Overview
 
-A dummy Flask-Redis webapp to count stuff, instrumented with Datadog for Metrics, Logs and Traces.
+A dummy webapp, for users click on a button and track the number of click as a vanity metric. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
+
+![app overview](https://github.com/pcarioufr/datadog-flask-redis-sandbox/blob/master/readme/app.png?raw=true)
+
+Users click the big-button in **Browser**, and number of clicks for that user is stored in **Redis**. **Flask** handles cookie-based authentication, web page template rendering and some back-end plumbery. 
 
 
-## Redis Sandbox How To 
+## How To 
 
 ### Setup
 
 1. install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-2. Create a [Datadog Org](https://app.datadoghq.com/signup) and get an [API key](https://app.datadoghq.com/organization-settings/api-keys)
-3. In the `.env`file, update
-    * `DD_API_KEY` with the aforementioned API key
-    * `DD_SITE` with the Datadog site you use - see our [user doc](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference 
+
+2. Create a [Datadog Org](https://app.datadoghq.com/signup), and update `DD_SITE` in the `.env` file (see [documentation](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference)
+
+3. Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), , and update `DD_API_KEY` and `DD_CLIENT_TOKEN` in the `.env` file.
+
+4. Create a [Datadog RUM Application](https://app.datadoghq.com/rum/application/create) for Javascript, and update `DD_APPLICATION_ID` in the `.env` file.
 
 
-From a terminal at the root of the `redis-sandbox` folder:
+### Run
+
+Run `docker compose up` from a terminal at the root of the `redis-sandbox` folder:
 
 ```bash
 % docker compose up   
@@ -24,29 +32,26 @@ From a terminal at the root of the `redis-sandbox` folder:
  ⠿ Container flask    Created      10.0s
 ```
 
-Ctrl-C would kill the app
-
-### Run
-
-From a(nother) terminal at the root of the `redis-sandbox` folder:
+Ctrl-C would kill the app.
 
 
-```bash
-curl "http://localhost:8000"
-<p>Hello, World!</p>%    
-```
+### Play
 
-```bash
-curl -XPOST "http://localhost:8000/count/hello"
-{"count":"1","key":"hello"}
-```
+From a web browser:
+* Connect to `http://localhost:8000`. You'll be logged in as a random user `abcd1234@sandbox.com`.
+* Alternatively, log in as any user injecting their user_id in the URL (yay... security): `http://localhost:8000/?user_id=john.doe`.
+
+
+Your cookie expires when you close your browser.
 
 
 ### Observe
 
+* [Service Catalog](https://app.datadoghq.com/metric/summary?tags=env%3Asandbox)
+* [Metrics](https://app.datadoghq.com/metric/summary)
 * [Logs](https://app.datadoghq.com/logs?query=env%3Asandbox)
 * [Trace](https://app.datadoghq.com/apm/traces?query=%40_top_level%3A1%20env%3Asandbox)
-* [Service Catalog](https://app.datadoghq.com/services?env=sandbox)
+* [RUM Events](https://app.datadoghq.com/rum/explorer?query=%40type%3Asession)
 
 ... [Dashboards](https://app.datadoghq.com/dashboard/lists), [Monitors](https://app.datadoghq.com/monitors#recommended?q=integration:Redis&p=1)
 
