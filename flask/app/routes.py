@@ -15,6 +15,10 @@ redis_client = redis.Redis(
             decode_responses=True
         )
 
+def random_id():
+    rid = ''.join((random.choice('1234567890abcdef') for i in range(8)))
+    return rid
+
 
 @app.route("/")
 def hello_world():
