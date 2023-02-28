@@ -41,6 +41,10 @@ def hello_world():
 
         log.info("user {} logged in".format(user_id))
 
+    else:
+
+        user_id = flask.session.get("user_id")
+
 
     if redis_client.get(user_id) is None:
         user_init_count = 0
