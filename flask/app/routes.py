@@ -23,6 +23,7 @@ def random_id():
 @app.route("/")
 def hello_world():
 
+    # Login when user_id is injected as a URL param 
     if flask.request.args.get("user_id") is not None:
 
         user_id = flask.request.args.get("user_id")
@@ -32,6 +33,7 @@ def hello_world():
         log.info("user {} logged in".format(user_id))
 
 
+    # Login as random user (when session cookie is empty)
     elif flask.session.get("user_id") is None:
 
         user_id = random_id()
@@ -41,8 +43,8 @@ def hello_world():
 
         log.info("user {} logged in".format(user_id))
 
+    # Recognizes an existing user (through session cookie)
     else:
-
         user_id = flask.session.get("user_id")
 
 
