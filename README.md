@@ -53,6 +53,8 @@ Your cookie expires when you close your browser.
 
 ### Terraform
 
+Terraform runs within a docker container, with working directory properly wired to the terraform configuration (see [--chdir option](https://developer.hashicorp.com/terraform/cli/commands#switching-working-directory-with-chdir) )
+
 ``` bash
 $ ./terraform.sh init
 Initializing the backend...
@@ -69,7 +71,7 @@ Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 ``` bash
 $ ./terraform.sh destroy
 [...]
-Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+Destroy complete! Resources: 3 destroyed.
 ```
 
 ### Observe
