@@ -9,7 +9,8 @@ RUN apt install -y -qq \
     sudo \
     lsb-release \
     software-properties-common \
-    wget
+    wget \
+    jq
 
 # Install Terraform CLI 
 # https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli

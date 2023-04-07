@@ -69,6 +69,14 @@ Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 ```
 
 ``` bash
+$ ./terraform.sh output monitor_tags
+[
+  "env:sandbox",
+  "owner:terraform"
+]
+```
+
+``` bash
 $ ./terraform.sh destroy
 [...]
 Destroy complete! Resources: 3 destroyed.

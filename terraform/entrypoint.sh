@@ -10,7 +10,7 @@ then terraform login ; exit 0
 fi
 
 if [ "$CMD" == "output" ]
-then echo $(terraform ${TF_OPTS} output -json $@) | jq ; exit 0 
+then echo $(terraform ${TF_OPTS} output -json ${@:2}) | jq ; exit 0 
 fi
 
 if [ "$CMD" == "init" ]
