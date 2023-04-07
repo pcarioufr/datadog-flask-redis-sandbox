@@ -4,10 +4,11 @@ html {
 }
 
 :root {
-    --red: #f24a30;
+    --red: #811303;
     --green: #0c6f50;
     --dgreen: #094633;
     --beige: #ece2ce;
+    --orange: #e8a218;
 }
 
 * {
@@ -75,27 +76,27 @@ button {
     
 }
 
-button[counter] {
+button {
     background: var(--beige);    
 }
 
-button[counter] span {
-    color: var(--green);;
+button span {
+    color: var(--green);
     font-size: 128px;
     text-align: center;
     margin:auto
 }
 
-button[broken] {
-    background: var(--beige);    
-}
-button[broken][ok] {
-    background: var(--dgreen) !important;
-}
-button[broken][error] {
-    background: var(--red) !important;    
+button[loading] span {
+    color: var(--beige) !important;
 }
 
+button[ok] {
+    background: var(--dgreen);
+}
+button[error] {
+    background: var(--red);    
+}
 
 button:hover{
     box-shadow: 5px 5px 2px 0 rgba(0, 0, 0, 0.4);
@@ -103,4 +104,24 @@ button:hover{
 
 button:active{
     box-shadow: 1px 1px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+
+@keyframes spin {
+    0%   { transform: rotate(0deg)   }
+    100% { transform: rotate(360deg) }
+}
+
+
+button svg {
+    visibility: hidden;
+    position: absolute;
+    fill: var(--green);
+    width: 200px;
+    height: 200px;
+    animation: spin 5s linear infinite;
+}
+
+button[loading] svg {
+    visibility: visible !important;
 }

@@ -20,3 +20,7 @@ variable "dd_env" {
 variable "dd_tags" {
   type    = string
 }
+
+variable "notif_email" {
+  type    = string
+}

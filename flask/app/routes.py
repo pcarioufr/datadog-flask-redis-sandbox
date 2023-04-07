@@ -8,6 +8,7 @@ import os
 from app.logs import log
 
 import random
+import time
 
 
 redis_client = redis.Redis(
@@ -69,28 +70,26 @@ def hello_world():
 
 
 
-@app.route("/count/<key>", methods=['GET', 'POST'])
-def count(key=None):
+@app.route("/count/<user_id>", methods=['GET', 'POST'])
+def count(user_id=None):
 
-    if key is None:
+    if user_id is None:
         return flask.jsonify(), 400
 
-    if flask.request.method == 'POST':
-        redis_client.incr(key, 1)
+    # adds random latency to the request
+    r_lat = random.triangular(0, 2)
+    time.sleep(r_lat)
 
-    count = redis_client.get(key)
-    log.info("count={}".format(count))
-
-    return flask.jsonify(key=key, count=count)
-
-
-@app.route("/broken", methods=['GET'])
-def broken():
-
-    r = random.random()
-
-    if r > 0.5 :
+    # random fails the query
+    r_err = random.random()
+    if r_err > 0.5 :
         log.error("oops")
         return flask.jsonify(), 500
 
-    return flask.jsonify(), 204
+    if flask.request.method == 'POST':
+        redis_client.incr(user_id, 1)
+
+    count = redis_client.get(user_id)
+    log.info("count={}".format(count))
+
+    return flask.jsonify(user_id=user_id, count=count)

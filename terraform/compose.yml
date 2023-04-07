@@ -10,6 +10,7 @@ services:
       - TF_VAR_dd_site=${DD_SITE}
       - TF_VAR_dd_env=${DD_ENV}
       - TF_VAR_dd_tags=${DD_TAGS}
+      - TF_VAR_notif_email=${NOTIF_EMAIL}
     container_name: box
     volumes:
       - ./entrypoint.sh:/opt/box/entrypoint.sh # entrypoint

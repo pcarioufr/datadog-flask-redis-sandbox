@@ -14,6 +14,6 @@ def init_app():
 
     with app.app_context():
 
-        from .routes import hello_world, count, broken
+        from .routes import hello_world, count
 
         return app

@@ -1,16 +1,15 @@
 ## Overview
 
-A dummy webapp, where users click on buttons and things happen. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
+A dummy webapp, where users click a button and things happen. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
 
 ![app overview](/app.png)
 
-
-**Flask** handles cookie-based authentication, web page template rendering and some back-end plumbery. When users click in **Browser**
-* the left-hand-side big button: it increments a click-counter for that user, stored in **Redis**.
-* the right-hand-side big button: it has 50% chance to generate a 500 error.
+**Flask** handles cookie-based authentication, web page template rendering and some back-end plumbery.
 
 
-The webapp comes with a basic collection of Datadog assets (Monitors only at the moment), deployable through a wrapped and dockerized [Terraform CLI](https://developer.hashicorp.com/terraform/cli/commands). 
+Clicking the big button increments a counter for that user, stored in **Redis**. But it may fail, and run take 100s of milliseconds to run.
+
+The webapp comes with a basic collection of Datadog Monitors and Dashboards, deployable through a wrapped and dockerized [Terraform CLI](https://developer.hashicorp.com/terraform/cli/commands). 
 
 
 ## How To 
@@ -91,4 +90,3 @@ Destroy complete! Resources: 3 destroyed.
 * [RUM Events](https://app.datadoghq.com/rum/explorer?query=%40type%3Asession)
 
 ... [Dashboards](https://app.datadoghq.com/dashboard/lists), [Monitors](https://app.datadoghq.com/monitors#recommended?q=integration:Redis&p=1)
-
