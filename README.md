@@ -1,6 +1,6 @@
 ## Overview
 
-A dummy webapp, for users click on a button and track the number of click as a vanity metric. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
+A dummy webapp, where users click on buttons and things happen. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
 
 ![app overview](/app.png)
 
@@ -9,6 +9,8 @@ A dummy webapp, for users click on a button and track the number of click as a v
 * the left-hand-side big button: it increments a click-counter for that user, stored in **Redis**.
 * the right-hand-side big button: it has 50% chance to generate a 500 error.
 
+
+The webapp comes with a basic collection of Datadog assets (Monitors only at the moment), deployable through a wrapped and dockerized [Terraform CLI](https://developer.hashicorp.com/terraform/cli/commands). 
 
 
 ## How To 
@@ -19,7 +21,7 @@ A dummy webapp, for users click on a button and track the number of click as a v
 
 2. Create a [Datadog Org](https://app.datadoghq.com/signup), and update `DD_SITE` in the `.env` file (see [documentation](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference)
 
-3. Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), , and update `DD_API_KEY` and `DD_CLIENT_TOKEN` in the `.env` file.
+3. Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), an [APP key](https://app.datadoghq.com/organization-settings/application-keys) as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), and update `DD_API_KEY`, `DD_APP_KEY` and `DD_CLIENT_TOKEN` accordingly in the `.env` file.
 
 4. Create a [Datadog RUM Application](https://app.datadoghq.com/rum/application/create) for Javascript, and update `DD_APPLICATION_ID` in the `.env` file.
 
@@ -29,7 +31,7 @@ A dummy webapp, for users click on a button and track the number of click as a v
 Run `docker compose up` from a terminal at the root of the `redis-sandbox` folder:
 
 ```bash
-% docker compose up   
+$ docker compose up   
 [+] Running 3/3
  ⠿ Container redis    Created      10.0s
  ⠿ Container datadog  Created      10.0s
@@ -48,6 +50,27 @@ From a web browser:
 
 Your cookie expires when you close your browser.
 
+
+### Terraform
+
+``` bash
+$ ./terraform.sh init
+Initializing the backend...
+[...]
+Terraform has been successfully initialized!
+```
+
+``` bash
+$ ./terraform.sh apply
+[...]
+Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+```
+
+``` bash
+$ ./terraform.sh destroy
+[...]
+Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+```
 
 ### Observe
 

@@ -27,6 +27,7 @@ def hello_world():
     if flask.request.args.get("user_id") is not None:
 
         user_id = flask.request.args.get("user_id")
+
         flask.session["user_id"] = user_id
         flask.session["user_email"] = "{}@sandbox.com".format(user_id)
 

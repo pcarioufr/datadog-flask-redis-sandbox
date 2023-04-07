@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+
+  terraform:
+    build: ./terraform/build/.
+    environment:
+      - TF_VAR_dd_api_key=${DD_API_KEY}
+      - TF_VAR_dd_app_key=${DD_APP_KEY}
+      - TF_VAR_dd_site=${DD_SITE}
+      - TF_VAR_dd_env=${DD_ENV}
+      - TF_VAR_dd_tags=${DD_TAGS}
+    container_name: box
+    volumes:
+      - ./entrypoint.sh:/opt/box/entrypoint.sh # entrypoint
+      - ./conf:/opt/box/terraform # terraform configuration
+      - home:/home/ubuntu
+
+volumes:
+  home:
+    driver: local
