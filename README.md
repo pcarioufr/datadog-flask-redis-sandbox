@@ -24,6 +24,8 @@ The webapp comes with a basic collection of Datadog Monitors and Dashboards, dep
 
 4. Create a [Datadog RUM Application](https://app.datadoghq.com/rum/application/create) for Javascript, and update `DD_APPLICATION_ID` in the `.env` file.
 
+5. Update the `NOTIF_EMAIL` in the `.env` file with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
+
 
 ### Run
 
