@@ -15,6 +15,7 @@ services:
       - DD_CLIENT_TOKEN
       - DD_APPLICATION_ID
       - DD_SITE
+      - DD_LOGS_ENABLED=true
       - DD_LOGS_INJECTION=true
       - DD_TRACE_ANALYTICS_ENABLED=true
       - DD_AGENT_HOST=datadog
