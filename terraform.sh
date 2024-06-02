@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 docker compose \
     -f ./terraform/compose.yml \

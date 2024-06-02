@@ -4,8 +4,9 @@ A dummy webapp, where users click a button and things happen. Instrumented with 
 
 ![app overview](/app.png)
 
-**Flask** handles cookie-based authentication, web page template rendering and some back-end plumbery.
+**NGINX** proxies all incoming HTTP requests.
 
+**Flask** handles cookie-based authentication, web page template rendering and some back-end plumbery.
 
 Clicking the big button increments a counter for that user, stored in **Redis**. But it may fail, and run take 100s of milliseconds to run.
 

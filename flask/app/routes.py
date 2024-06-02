@@ -73,6 +73,11 @@ def hello_world():
 @app.route("/count/<user_id>", methods=['GET', 'POST'])
 def count(user_id=None):
 
+
+    trace_id = flask.request.headers.get("X-Datadog-Trace-Id")
+    parent_id = flask.request.headers.get("X-Datadog-Parent-Id")
+    log.info("Parent: Trace ID {} - Span ID {}".format(trace_id, parent_id))
+
     if user_id is None:
         return flask.jsonify(), 400
 

@@ -1,6 +1,27 @@
-version: '3.8'
+
 
 services:
+
+  nginx:
+    container_name: nginx
+    build: ./nginx/build/.
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    expose:
+      - 81
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    labels:
+      com.datadoghq.ad.check_names: '["nginx"]'
+      com.datadoghq.ad.init_configs: '[{}]'
+      com.datadoghq.ad.instances: '[{"nginx_status_url": "http://nginx:81/nginx_status/"}]'
+      com.datadoghq.ad.logs: '[{"source": "nginx", "service": "nginx"}]'
+    environment:
+      - DD_SERVICE="nginx"
+      - DD_ENV
+      - DD_VERSION
+      - DD_AGENT_HOST=datadog
 
   flask:
     container_name: flask
@@ -24,10 +45,10 @@ services:
       - REDIS_HOST=redis
     labels:
       com.datadoghq.ad.logs: '[{"source": "python", "service": "flask", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "\\[?\\d{4}-\\d{2}-\\d{2}"}]}]'
-    ports:
-      - 8000:8000
+    expose:
+      - 8001
 
-    command: ddtrace-run gunicorn -w 2 -b :8000 --timeout 60 wsgi:app
+    command: ddtrace-run gunicorn -w 2 -b :8001 --timeout 60 wsgi:app
 
 
   redis:
@@ -71,6 +92,7 @@ services:
       - ./datadog/run:/opt/datadog-agent/run:rw
     labels:
       com.datadoghq.ad.logs: '[{"source": "datadog-agent", "service": "datadog"}]'
+
 
 volumes:
   redis:
