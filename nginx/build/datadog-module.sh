@@ -30,6 +30,7 @@ TARBALL="ngx_http_datadog_module-${ARCH}-${NGINX_VERSION}.so.tgz"
 #TARBALL="nginx_1.26.0-arm64-ngx_http_datadog_module.so.tgz"
 
 RELEASE_TAG=$(get_latest_release DataDog/nginx-datadog)
+#RELEASE_TAG=v1.1.0
 
 echo "LIB=${LIB}"
 echo "RELEASE_TAG=${RELEASE_TAG}"
