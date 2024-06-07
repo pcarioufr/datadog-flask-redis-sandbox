@@ -27,6 +27,8 @@ The webapp comes with a basic collection of Datadog Monitors and Dashboards, dep
 
 5. Update the `NOTIF_EMAIL` in the `.env` file with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
 
+6. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations), and update `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file. Run `http://nginx:80/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
+
 
 ### Run
 

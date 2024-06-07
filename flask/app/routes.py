@@ -20,9 +20,15 @@ def random_id():
     rid = ''.join((random.choice('1234567890abcdef') for i in range(8)))
     return rid
 
+@app.route("/ping")
+def ping():
+
+    log.info("ping successful")
+    return flask.jsonify(response="pong"), 200
+
 
 @app.route("/")
-def hello_world():
+def home():
 
     # Login when user_id is injected as a URL param 
     if flask.request.args.get("user_id") is not None:
@@ -97,4 +103,4 @@ def count(user_id=None):
     count = redis_client.get(user_id)
     log.info("count={}".format(count))
 
-    return flask.jsonify(user_id=user_id, count=count)
+    return flask.jsonify(user_id=user_id, count=count), 200

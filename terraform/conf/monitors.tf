@@ -1,6 +1,6 @@
 locals {
   # monitor_tags = [split(" ", var.dd_tags), "env:${var.dd_env}", "owner:terraform"]
-  monitor_tags = ["env:${var.dd_env}", "owner:terraform"]
+  monitor_tags = ["env:${var.dd_env}", "owner:terraform", "${var.dd_tags}"]
 }
 
 resource "datadog_monitor" "low_hits" {
