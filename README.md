@@ -27,8 +27,10 @@ The webapp comes with a basic collection of Datadog Monitors and Dashboards, dep
 
 5. Update the `NOTIF_EMAIL` in the `.env` file with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
 
-6. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations), and update `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file. Run `http://nginx:80/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
-
+6. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations), 
+* once you created the private location, get its configutation point and secrets, and update accordingly `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file. 
+* You may discard the json file, you won't need it. And skip the "Install your Private Location" step, it's already prebaked in this sandbox.
+* run `http://nginx:80/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
 
 ### Run
 
@@ -36,10 +38,12 @@ Run `docker compose up` from a terminal at the root of the `redis-sandbox` folde
 
 ```bash
 $ docker compose up   
-[+] Running 3/3
- ⠿ Container redis    Created      10.0s
- ⠿ Container datadog  Created      10.0s
- ⠿ Container flask    Created      10.0s
+[+] Running 5/5
+ ✔ Container nginx        Started    0.3s 
+ ✔ Container datadog      Started    0.3s 
+ ✔ Container redis        Started    0.3s
+ ✔ Container synthetics   Started    0.3s
+ ✔ Container flask        Started    0.3s
 ```
 
 Ctrl-C would kill the app.

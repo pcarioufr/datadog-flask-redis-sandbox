@@ -105,6 +105,7 @@ services:
       - DATADOG_SECRET_ACCESS_KEY
       - DATADOG_PUBLIC_KEY_PEM 
       - DATADOG_PRIVATE_KEY
+      - DATADOG_SITE
     labels:
       com.datadoghq.ad.logs: '[{"source": "synthetics", "service": "synthetics"}]'
 
