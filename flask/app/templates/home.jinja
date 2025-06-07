@@ -77,7 +77,6 @@
     <title>Chat Sandbox</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}" />
 
-
 </head>
 
 <body>
@@ -88,116 +87,156 @@
     
     <div class="chat-thread">
         <div class="messages" id="chat-messages"></div>
-
     </div>
     
-    <div class="chat-controls">
+    <div class="chat-actions">
+        <button id="clear-chat-button" class="clear-chat-btn">Clear Chat History</button>
+    </div>
+
+    <div class="message-input-container">
         <div class="message-input">
             <textarea 
                 id="chat-input" 
                 placeholder="Type your message here..."
-                onkeydown="if(event.keyCode === 13 && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+                rows="1"
             ></textarea>
-            <button onclick="sendMessage()" id="send-button">Send</button>
-        </div>
-        <div class="chat-actions">
-            <button id="clear-chat-button" class="clear-chat-btn">Clear Chat History</button>
+            <button id="send-button">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4.5 19.5L20 12L4.5 4.5L4.5 10.5L15 12L4.5 13.5L4.5 19.5Z" 
+                          fill="currentColor" 
+                          stroke="currentColor" 
+                          stroke-width="1.5" 
+                          stroke-linejoin="round"/>
+            </svg> 
+        </button>
         </div>
     </div>
 
     <script>
-        const messageInput = document.getElementById('chat-input');
-        const sendButton = document.getElementById('send-button');
-        const messagesContainer = document.getElementById('chat-messages');
-        
-        // Token buffer and rendering mechanism
-        class TokenBuffer {
-            constructor(minChunkSize = 50, maxDelay = 50) {
-                this.buffer = '';
-                this.minChunkSize = minChunkSize;  // minimum characters before rendering
-                this.maxDelay = maxDelay;          // max milliseconds to wait before rendering
-                this.timeout = null;
-                this.lastRenderTime = Date.now();
-                this.startTime = Date.now();       // Track when streaming began
-                this.contentDiv = null;            // Div for actual content
-                this.loadingDots = null;           // Loading dots element
+        class ChatUI {
+            constructor() {
+                this.thread = document.querySelector('.chat-thread');
+                this.messagesContainer = document.getElementById('chat-messages');
+                this.input = document.getElementById('chat-input');
+                this.sendButton = document.getElementById('send-button');
+                this.clearButton = document.getElementById('clear-chat-button');
+
+                // Setup input auto-resize
+                this.input.addEventListener('input', () => this.autoResizeInput());
             }
-            
-            // Smoothly scroll to the bottom of chat
+
+            autoResizeInput() {
+                this.input.style.height = 'auto';
+                const newHeight = Math.min(this.input.scrollHeight, 120);
+                this.input.style.height = newHeight + 'px';
+            }
+
             smoothScrollToBottom() {
-                const chatThread = document.querySelector('.chat-thread');
                 const startTime = Date.now();
-                const startScroll = chatThread.scrollTop;
-                const targetScroll = chatThread.scrollHeight - chatThread.offsetHeight;
+                const startScroll = this.thread.scrollTop;
+                const targetScroll = this.thread.scrollHeight - this.thread.offsetHeight;
                 
-                console.log(`[Scroll] Token render at ${Date.now() - this.startTime}ms`);
+                console.log('[Scroll] Starting scroll animation');
                 console.log(`[Scroll] Start position: ${startScroll}px`);
                 console.log(`[Scroll] Target position: ${targetScroll}px`);
                 
-                chatThread.style.scrollBehavior = 'smooth';
-                chatThread.scrollTop = targetScroll;
+                this.thread.style.scrollBehavior = 'smooth';
+                this.thread.scrollTop = targetScroll;
                 
-                // Reset scroll behavior after animation
                 setTimeout(() => {
-                    chatThread.style.scrollBehavior = 'auto';
-                }, 300); // Shorter timeout since we're doing this frequently
+                    this.thread.style.scrollBehavior = 'auto';
+                    console.log(`[Scroll] Final position: ${this.thread.scrollTop}px`);
+                    console.log(`[Scroll] Animation completed after ${Date.now() - startTime}ms`);
+                }, 300);
             }
-            
-            // Force render the current buffer
+
+            addMessage(content, isUser = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+                messageDiv.style.whiteSpace = 'pre-wrap';
+                messageDiv.innerText = content;
+                this.messagesContainer.appendChild(messageDiv);
+                this.smoothScrollToBottom();
+                return messageDiv;
+            }
+
+            showLoading() {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message assistant-message';
+                messageDiv.style.whiteSpace = 'pre-wrap';
+                
+                const loadingDots = document.createElement('div');
+                loadingDots.className = 'loading-dots';
+                loadingDots.innerHTML = '<span></span><span></span><span></span>';
+                
+                messageDiv.appendChild(loadingDots);
+                this.messagesContainer.appendChild(messageDiv);
+                this.smoothScrollToBottom();
+                return { messageDiv, loadingDots };
+            }
+
+            clearMessages() {
+                this.messagesContainer.innerHTML = '';
+            }
+
+            setInputState(enabled) {
+                this.input.disabled = !enabled;
+                this.sendButton.disabled = !enabled;
+                if (enabled) {
+                    this.input.focus();
+                }
+            }
+        }
+
+        class TokenBuffer {
+            constructor(minChunkSize, maxDelay, container, chatUI) {
+                this.buffer = '';
+                this.minChunkSize = minChunkSize;
+                this.maxDelay = maxDelay;
+                this.timeout = null;
+                this.container = container.messageDiv;
+                this.loadingDots = container.loadingDots;
+                this.contentDiv = null;
+                this.chatUI = chatUI;  // Store reference to ChatUI for scrolling
+            }
+
+            initializeContent() {
+                if (!this.contentDiv) {
+                    this.contentDiv = document.createElement('div');
+                    this.contentDiv.className = 'message-content';
+                    this.container.insertBefore(this.contentDiv, this.loadingDots);
+                }
+            }
+
+            append(text) {
+                this.initializeContent();
+                this.buffer += text;
+                
+                if (this.buffer.length >= this.minChunkSize) {
+                    this.flush();
+                    return;
+                }
+                
+                if (!this.timeout) {
+                    this.timeout = setTimeout(() => this.flush(), this.maxDelay);
+                }
+            }
+
             flush() {
                 if (this.buffer) {
-                    const now = Date.now();
-                    const elapsedMs = now - this.startTime;
-                    const timeSinceLastRender = now - this.lastRenderTime;
-                    console.log(
-                        `[${elapsedMs}ms] Rendering chunk after ${timeSinceLastRender}ms ` +
-                        `(${this.buffer.length} chars):`, 
-                        this.buffer
-                    );
                     const span = document.createElement('span');
                     span.textContent = this.buffer;
                     span.className = 'token';
                     this.contentDiv.appendChild(span);
-                    this.smoothScrollToBottom();  // Scroll after adding content
                     this.buffer = '';
-                    this.lastRenderTime = now;
+                    this.chatUI.smoothScrollToBottom();  // Scroll after adding new content
                 }
                 if (this.timeout) {
                     clearTimeout(this.timeout);
                     this.timeout = null;
                 }
             }
-            
-            // Add text to buffer and schedule rendering
-            append(text) {
-                // On first append, ensure we have content div
-                if (!this.contentDiv) {
-                    // Create content div if it doesn't exist
-                    this.contentDiv = document.createElement('div');
-                    this.contentDiv.className = 'message-content';
-                    this.messageDiv.appendChild(this.contentDiv);
-                    
-                    // Move loading dots after content div
-                    if (this.loadingDots) {
-                        this.messageDiv.appendChild(this.loadingDots);
-                    }
-                }
-                
-                this.buffer += text;
-                
-                // If buffer is large enough, render immediately
-                if (this.buffer.length >= this.minChunkSize) {
-                    this.flush();
-                    return;
-                }
-                
-                // Otherwise, schedule a delayed render
-                if (!this.timeout) {
-                    this.timeout = setTimeout(() => this.flush(), this.maxDelay);
-                }
-            }
-            
-            // Clear the buffer and any pending renders
+
             clear() {
                 this.buffer = '';
                 if (this.timeout) {
@@ -206,288 +245,214 @@
                 }
             }
 
-            // Initialize a new message div
-            startNewMessage() {
-                this.messageDiv = document.createElement('div');
-                this.messageDiv.className = 'message assistant-message';
-                this.messageDiv.style.whiteSpace = 'pre-wrap';
-                
-                // Add loading indicator
-                this.loadingDots = document.createElement('div');
-                this.loadingDots.className = 'loading-dots';
-                this.loadingDots.innerHTML = '<span></span><span></span><span></span>';
-                this.messageDiv.appendChild(this.loadingDots);
-                
-                messagesContainer.appendChild(this.messageDiv);
-                this.startTime = Date.now();
-                this.lastRenderTime = Date.now();
-                console.log('[0ms] Starting new message rendering');
-                
-                // Initial scroll for the loading indicator
-                this.smoothScrollToBottom();
-            }
-            
-            // Complete the message and remove loading dots
             complete() {
-                this.flush(); // Render any remaining buffered content
+                this.flush();
                 if (this.loadingDots) {
                     this.loadingDots.remove();
-                    this.loadingDots = null;
                 }
-                this.smoothScrollToBottom();
             }
         }
 
-        // Load chat history when page loads
-        async function loadChatHistory() {
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        initial_load: true
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.history && data.history.length > 0) {
-                    // Display each message from history
-                    data.history.forEach(msg => {
-                        addMessage(msg.content, msg.role === 'user');
-                    });
-                }
-            } catch (error) {
-                console.error('Error loading chat history:', error);
-                addMessage('Hello! How can I help you today?', false);
+        class StreamProcessor {
+            constructor(tokenBuffer) {
+                this.tokenBuffer = tokenBuffer;
+                this.reader = null;
+                this.decoder = new TextDecoder();
+                this.buffer = '';
+                this.dataBuffer = '';
             }
 
-            // Ensure DOM is updated before final scroll
-            setTimeout(() => {
-                const chatThread = document.querySelector('.chat-thread');
-                const startTime = Date.now();
-                const startScroll = chatThread.scrollTop;
-                const targetScroll = chatThread.scrollHeight - chatThread.offsetHeight;
+            async processStream(response) {
+                this.reader = response.body.getReader();
                 
-                console.log('[Scroll] History loaded, starting final scroll');
-                console.log(`[Scroll] Container height: ${chatThread.offsetHeight}px`);
-                console.log(`[Scroll] Scroll height: ${chatThread.scrollHeight}px`);
-                console.log(`[Scroll] Start position: ${startScroll}px`);
-                console.log(`[Scroll] Target position: ${targetScroll}px`);
-                
-                // Enable smooth scrolling and scroll to bottom
-                chatThread.style.scrollBehavior = 'smooth';
-                chatThread.scrollTop = targetScroll;
-                
-                // Log completion and reset scroll behavior
-                setTimeout(() => {
-                    console.log(`[Scroll] Final position: ${chatThread.scrollTop}px`);
-                    console.log(`[Scroll] History scroll completed after ${Date.now() - startTime}ms`);
-                    chatThread.style.scrollBehavior = 'auto';
-                }, 1000); // Wait for animation to complete
-            }, 100);
-        }
-
-        function addMessage(content, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-            messageDiv.style.whiteSpace = 'pre-wrap';
-            messageDiv.innerText = content;
-            messagesContainer.appendChild(messageDiv);
-            
-            // Scroll with animation
-            const chatThread = document.querySelector('.chat-thread');
-            const startTime = Date.now();
-            const startScroll = chatThread.scrollTop;
-            const targetScroll = chatThread.scrollHeight - chatThread.offsetHeight;
-            
-            console.log('[Scroll] Message added, starting scroll animation');
-            console.log(`[Scroll] Start position: ${startScroll}px`);
-            console.log(`[Scroll] Target position: ${targetScroll}px`);
-            
-            // Ensure smooth scrolling is enabled
-            chatThread.style.scrollBehavior = 'smooth';
-            chatThread.scrollTop = targetScroll;
-            
-            // Log completion and reset scroll behavior
-            setTimeout(() => {
-                console.log(`[Scroll] Final position: ${chatThread.scrollTop}px`);
-                console.log(`[Scroll] Scroll animation completed after ${Date.now() - startTime}ms`);
-                chatThread.style.scrollBehavior = 'auto';
-            }, 1000); // Wait for animation to complete
-        }
-
-        async function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
-
-            // Disable input while processing
-            messageInput.disabled = true;
-            sendButton.disabled = true;
-
-            // Add user message to chat
-            addMessage(message, true);
-            messageInput.value = '';
-
-            try {
-                console.log('[0ms] Sending request...');
-                const requestStart = Date.now();
-                
-                // Create a new buffer for this message
-                const tokenBuffer = new TokenBuffer(20, 50);  // min 20 chars, max 50ms delay
-                tokenBuffer.startNewMessage();
-
-                // Make POST request with proper headers for streaming
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'text/event-stream',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        prompt: message
-                    })
-                });
-
-                console.log(`[${Date.now() - requestStart}ms] First byte received`);
-
-                // Get the response as a readable stream
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                
-                let buffer = '';
-                let dataBuffer = ''; // Buffer specifically for data: prefix content
-                let firstChunk = true;
-                
-                while (true) {
-                    const {value, done} = await reader.read();
-                    if (firstChunk && value) {
-                        console.log(`[${Date.now() - requestStart}ms] First token received`);
-                        firstChunk = false;
-                    }
-                    if (done) {
-                        console.log(`[${Date.now() - requestStart}ms] Stream complete`);
-                        // Try to process any remaining buffered content
-                        if (dataBuffer) {
-                            try {
-                                const parsed = JSON.parse(dataBuffer);
-                                if (parsed.content) {
-                                    tokenBuffer.append(parsed.content);
-                                }
-                            } catch (e) {
-                                console.warn('Failed to parse final buffer:', {
-                                    dataBuffer,
-                                    error: e.message
-                                });
-                            }
-                        }
-                        tokenBuffer.complete();
-                        break;
-                    }
-                    
-                    // Decode and add to buffer
-                    buffer += decoder.decode(value, {stream: true});
-                    
-                    // Process complete lines
+                try {
                     while (true) {
-                        const newlineIndex = buffer.indexOf('\n');
-                        if (newlineIndex === -1) break;
-                        
-                        const line = buffer.slice(0, newlineIndex);
-                        buffer = buffer.slice(newlineIndex + 1);
-                        
-                        if (line.trim() === '') continue;
-                        
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6); // Remove 'data: ' prefix
-                            
-                            if (data === '[DONE]') {
-                                tokenBuffer.complete();
-                                continue;
-                            }
-                            
-                            // Add to data buffer and try to parse
-                            dataBuffer += data;
-                            try {
-                                const parsed = JSON.parse(dataBuffer);
-                                if (parsed.content) {
-                                    tokenBuffer.append(parsed.content);
-                                    dataBuffer = ''; // Clear buffer after successful parse
-                                }
-                            } catch (e) {
-                                // Only log if it's not just an incomplete JSON object
-                                if (!e.message.includes('Unexpected end of JSON input')) {
-                                    console.warn('Parse attempt failed:', {
-                                        data,
-                                        dataBuffer,
-                                        error: e.message
-                                    });
-                                }
-                                // Keep accumulating data if it might be incomplete
-                            }
+                        const {value, done} = await this.reader.read();
+                        if (done) {
+                            await this.handleStreamEnd();
+                            break;
+                        }
+                        await this.processChunk(value);
+                    }
+                } catch (error) {
+                    throw error; // Propagate error to caller
+                }
+            }
+
+            async handleStreamEnd() {
+                // Handle any remaining data when stream ends
+                if (this.dataBuffer) {
+                    try {
+                        const parsed = JSON.parse(this.dataBuffer);
+                        if (parsed.content) {
+                            this.tokenBuffer.append(parsed.content);
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse final buffer:', e);
+                    }
+                }
+                this.tokenBuffer.complete();
+            }
+
+            async processChunk(value) {
+                // Decode incoming chunks and add to buffer
+                this.buffer += this.decoder.decode(value, {stream: true});
+                
+                // Process complete lines from buffer
+                while (true) {
+                    const newlineIndex = this.buffer.indexOf('\n');
+                    if (newlineIndex === -1) break;  // No complete line yet
+                    
+                    // Extract and process one line
+                    const line = this.buffer.slice(0, newlineIndex);
+                    this.buffer = this.buffer.slice(newlineIndex + 1);
+                    
+                    await this.processLine(line);
+                }
+            }
+
+            async processLine(line) {
+                if (line.trim() === '') return;  // Skip empty lines
+                
+                // Handle SSE data events
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    
+                    // Skip completion marker
+                    if (data === '[DONE]') return;
+                    
+                    // Accumulate and parse JSON data
+                    this.dataBuffer += data;
+                    try {
+                        const parsed = JSON.parse(this.dataBuffer);
+                        if (parsed.content) {
+                            this.tokenBuffer.append(parsed.content);
+                            this.dataBuffer = '';  // Reset buffer after successful parse
+                        }
+                    } catch (e) {
+                        // Ignore expected JSON parsing errors for incomplete chunks
+                        if (!e.message.includes('Unexpected end of JSON input')) {
+                            console.warn('Parse attempt failed:', e);
                         }
                     }
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                addMessage('Sorry, there was an error processing your request.', false);
-            } finally {
-                // Re-enable input
-                messageInput.disabled = false;
-                sendButton.disabled = false;
-                messageInput.focus();
             }
         }
 
-        // Load chat history when page loads
-        loadChatHistory();
-
-        // Add event listener for Enter key
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
+        class ChatManager {
+            constructor() {
+                this.ui = new ChatUI();
+                this.setupEventListeners();
             }
-        });
 
-        // Add clear chat functionality
-        document.getElementById('clear-chat-button').addEventListener('click', async () => {
-            try {
-                // Clear the chat messages container immediately
-                messagesContainer.innerHTML = '';
-                
-                // Create loading message with dots
-                const tokenBuffer = new TokenBuffer(20, 50);
-                tokenBuffer.startNewMessage();
-                
-                // Make the DELETE request
-                const response = await fetch('/api/chat', {
-                    method: 'DELETE'
+            setupEventListeners() {
+                this.ui.sendButton.addEventListener('click', () => this.sendMessage());
+                this.ui.clearButton.addEventListener('click', () => this.clearHistory());
+                this.ui.input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
                 });
+            }
 
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Remove the loading message
-                    messagesContainer.innerHTML = '';
+            async loadHistory() {
+                this.ui.setInputState(false);
+                const loadingDiv = this.ui.showLoading();
+
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initial_load: true })
+                    });
+
+                    const data = await response.json();
+                    this.ui.clearMessages();
                     
-                    // Display the new welcome message
                     if (data.history && data.history.length > 0) {
                         data.history.forEach(msg => {
-                            addMessage(msg.content, msg.role === 'user');
+                            this.ui.addMessage(msg.content, msg.role === 'user');
                         });
                     }
-                } else {
-                    console.error('Failed to clear chat:', data.error);
-                    addMessage('Sorry, there was an error clearing the chat history. Please try again.', false);
+                } catch (error) {
+                    console.error('Error loading chat history:', error);
+                    this.ui.clearMessages();
+                    this.ui.addMessage('Hello! How can I help you today?', false);
+                } finally {
+                    this.ui.setInputState(true);
                 }
-            } catch (error) {
-                console.error('Error clearing chat:', error);
-                addMessage('Sorry, there was an error clearing the chat history. Please try again.', false);
             }
-        });
+
+            async sendMessage() {
+                // Get and validate message content
+                const message = this.ui.input.value.trim();
+                if (!message) return;
+
+                // Disable input controls and clear the input
+                this.ui.setInputState(false);
+                this.ui.addMessage(message, true);
+                this.ui.input.value = '';
+
+                // Create loading state and initialize token buffer for streaming
+                const container = this.ui.showLoading();
+                const tokenBuffer = new TokenBuffer(20, 50, container, this.ui);
+                const streamProcessor = new StreamProcessor(tokenBuffer);
+
+                try {
+                    // Make streaming request to chat API
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'text/event-stream',  // Enable server-sent events
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ prompt: message })
+                    });
+
+                    // Process the stream
+                    await streamProcessor.processStream(response);
+                } catch (error) {
+                    // Handle any errors during the streaming process
+                    console.error('Error:', error);
+                    container.loadingDots.remove();
+                    this.ui.addMessage('Sorry, there was an error processing your request.', false);
+                } finally {
+                    // Re-enable input controls
+                    this.ui.setInputState(true);
+                }
+            }
+
+            async clearHistory() {
+                this.ui.setInputState(false);
+                this.ui.clearMessages();
+                const loadingDiv = this.ui.showLoading();
+
+                try {
+                    const response = await fetch('/api/chat', { method: 'DELETE' });
+                    const data = await response.json();
+                    
+                    this.ui.clearMessages();
+                    
+                    if (response.ok && data.history && data.history.length > 0) {
+                        data.history.forEach(msg => {
+                            this.ui.addMessage(msg.content, msg.role === 'user');
+                        });
+                    } else {
+                        throw new Error(data.error || 'Failed to clear chat');
+                    }
+                } catch (error) {
+                    console.error('Error clearing chat:', error);
+                    this.ui.addMessage('Sorry, there was an error clearing the chat history. Please try again.', false);
+                } finally {
+                    this.ui.setInputState(true);
+                }
+            }
+        }
+
+        // Initialize and start the chat
+        const chatManager = new ChatManager();
+        chatManager.loadHistory();
     </script>
 
 </body>

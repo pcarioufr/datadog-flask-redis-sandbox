@@ -1,6 +1,6 @@
 ## Overview
 
-A dummy webapp with a chat interface powered by Ollama LLM. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
+A webapp chat interface for Ollama LLM, whose primary intent is to Dogfood Datadog.
 
 ![app overview](/app.png)
 
@@ -19,17 +19,19 @@ The webapp comes with a basic collection of Datadog Monitors and Dashboards, dep
 
 1. install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-2. Create a [Datadog Org](https://app.datadoghq.com/signup), and update `DD_SITE` in the `.env` file (see [documentation](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference)
+2. Install [Ollama](https://ollama.ai/download)
 
-3. Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), an [APP key](https://app.datadoghq.com/organization-settings/application-keys) as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), and update `DD_API_KEY`, `DD_APP_KEY` and `DD_CLIENT_TOKEN` accordingly in the `.env` file.
+3. Create a [Datadog Org](https://app.datadoghq.com/signup), and update `DD_SITE` in the `.env` file (see [documentation](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference)
 
-4. Create a [Datadog RUM Application](https://app.datadoghq.com/rum/application/create) for Javascript, and update `DD_APPLICATION_ID` in the `.env` file.
+4. Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), an [APP key](https://app.datadoghq.com/organization-settings/application-keys) as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), and update `DD_API_KEY`, `DD_APP_KEY` and `DD_CLIENT_TOKEN` accordingly in the `.env` file.
 
-5. Update the `NOTIF_EMAIL` in the `.env` file with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
+5. Create a [Datadog RUM Application](https://app.datadoghq.com/rum/application/create) for Javascript, and update `DD_APPLICATION_ID` in the `.env` file.
 
-5. Update the `OLLAMA_MODEL` in the `.env` file to match your running Ollama model (run `ollama ps` to see which models are running)
+6. Update the `NOTIF_EMAIL` in the `.env` file with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
 
-6. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations), 
+7. Update the `OLLAMA_MODEL` in the `.env` file to match your running Ollama model (run `ollama ps` to see which models are running)
+
+8. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations), 
 * once you created the private location, get its configutation point and secrets, and update accordingly `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file. 
 * You may discard the json file, you won't need it. And skip the "Install your Private Location" step, it's already prebaked in this sandbox.
 * run `http://nginx:80/api/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
@@ -101,3 +103,9 @@ Destroy complete! Resources: 2 destroyed.
 * [RUM Events](https://app.datadoghq.com/rum/explorer?query=%40type%3Asession)
 
 ... [Dashboards](https://app.datadoghq.com/dashboard/lists), [Monitors](https://app.datadoghq.com/monitors#recommended?q=integration:Redis&p=1)
+
+
+
+## License
+
+MIT
