@@ -4,6 +4,11 @@ from flask import current_app as app
 from app.logs import log
 from app.models import User, Chat
 
+# Datadog LLM Observability
+from ddtrace.llmobs import LLMObs
+from ddtrace.llmobs.decorators import llm
+
+
 def auth():
     """Handle user authentication.
     
@@ -50,7 +55,6 @@ def home():
 def ping():
     log.info("ping successful")
     return flask.jsonify(response="pong"), 200
-
 
 @app.route("/api/chat", methods=['POST', 'DELETE'])
 def chat():
@@ -101,6 +105,15 @@ def chat():
                         chat._add_message(collected_response.strip(), "assistant")
                         chat._save()
                         
+                        # Annotate the complete conversation for LLM observability
+                        with LLMObs.llm(model_name="mistral", model_provider="ollama") as span:
+
+                            LLMObs.annotate(
+                                span=span,
+                                input_data=chat.history[:-1],  # All messages before the response
+                                output_data={"role": "assistant", "content": collected_response.strip()}
+                            )
+                        
                 except Exception as e:
                     log.error(f"Error in stream processing: {str(e)}")
                     yield f"data: {json.dumps({'error': str(e)})}\n\n"
@@ -116,3 +129,4 @@ def chat():
     except Exception as e:
         log.error(f"Error in chat endpoint: {str(e)}")
         return flask.jsonify({"error": str(e)}), 500
+
