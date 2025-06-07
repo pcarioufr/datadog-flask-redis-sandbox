@@ -12,6 +12,8 @@ class Config:
     OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "mistral")  # default to mistral if not set
     OLLAMA_TEMPERATURE = float(os.environ.get("OLLAMA_TEMPERATURE", "0.8"))  # default to 0.8
     OLLAMA_TOP_P = float(os.environ.get("OLLAMA_TOP_P", "0.9"))  # default to 0.9
+    OLLAMA_NUM_PREDICT = int(os.environ.get("OLLAMA_NUM_PREDICT", 512))  # default to 512
+    OLLAMA_NUM_CTX = int(os.environ.get("OLLAMA_NUM_CTX", 4096))  # default to 4096
 
     # DATADOG ###############
     DD_CLIENT_TOKEN = os.environ.get("DD_CLIENT_TOKEN")

@@ -52,9 +52,25 @@ class Chat:
     def _init_chat(self):
         """Initialize chat with a welcome message from LLM"""
         welcome_prompt = "Please provide a brief, welcoming message to start our conversation."
-        welcome_message = self._llm_call([{"role": "user", "content": welcome_prompt}])
+        response = self._llm_call([{"role": "user", "content": welcome_prompt}])
+        
+        # Extract welcome message from streaming response
+        welcome_message = ""
+        try:
+            for line in response.iter_lines():
+                if line:
+                    try:
+                        chunk = json.loads(line)
+                        if chunk.get("message", {}).get("content"):
+                            welcome_message += chunk["message"]["content"]
+                    except json.JSONDecodeError:
+                        continue
+        except Exception as e:
+            log.error(f"Error getting welcome message: {str(e)}")
+            welcome_message = "Hello! How can I help you today?"
+        
         self.history = [
-            {"role": "assistant", "content": welcome_message}
+            {"role": "assistant", "content": welcome_message.strip()}
         ]
         self._save()
         return self.history
@@ -92,17 +108,8 @@ class Chat:
         # Add user's message to history
         self._add_message(message_content, "user")
         
-        # Get response from LLM
-        assistant_response = self._llm_call(self.history)
-        
-        # Add assistant's response to history
-        self._add_message(assistant_response, "assistant")
-        
-        # Clean up history by removing any empty messages
-        self.history = [msg for msg in self.history if msg.get('content', '').strip()]
-        self._save()
-        
-        return assistant_response
+        # Get streaming response from LLM
+        return self._llm_call(self.history)
 
     @llm(model_name=app.config["OLLAMA_MODEL"], model_provider="ollama")
     def _llm_call(self, messages):
@@ -124,35 +131,18 @@ class Chat:
             "messages": [
                 {"role": "system", "content": self._system_prompt}
             ] + messages,
-            "stream": False,  # Disable streaming to get a single response
+            "stream": True,  # Always stream
             "options": {
                 "temperature": app.config["OLLAMA_TEMPERATURE"],
-                "top_p": app.config["OLLAMA_TOP_P"]
+                "top_p": app.config["OLLAMA_TOP_P"],
+                "num_predict": int(app.config.get("OLLAMA_NUM_PREDICT")),
+                "num_ctx": int(app.config.get("OLLAMA_NUM_CTX"))
             }
         }
 
         # Forward the request to Ollama    
-        ollama_response = requests.post(
+        return requests.post(
             'http://host.docker.internal:11434/api/chat',
-            json=ollama_request
-        )
-
-        try:
-            response_data = ollama_response.json()
-
-        except json.JSONDecodeError as e:
-            log.error(f"Failed to parse Ollama response: {ollama_response.text}")
-            raise
-
-        LLMObs.annotate(
-            input_data=messages,
-            output_data=response_data["message"]
-        )
-
-        # Extract and return the assistant's response
-        assistant_response = response_data.get('message', {}).get('content', '').strip()
-        if not assistant_response:
-            log.warning("Received empty response from Ollama")
-            raise ValueError("Received empty response from Ollama")
-            
-        return assistant_response 
+            json=ollama_request,
+            stream=True  # Always stream
+        ) 

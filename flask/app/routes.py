@@ -54,19 +54,8 @@ def ping():
 
 @app.route("/api/chat", methods=['POST', 'DELETE'])
 def chat():
-    """Chat endpoint handling both streaming and non-streaming responses from Ollama.
-    
-    TODO: Add support for streaming responses from Ollama:
-    - Add a 'stream' parameter in the request to toggle streaming mode
-    - When streaming is enabled:
-        - Use Flask's streaming response
-        - Parse Ollama's streaming response line by line
-        - Send each chunk to the client
-        - Handle proper message history updates
-        - Consider implementing SSE (Server-Sent Events) for better client handling
-    """
+    """Chat endpoint handling streaming responses from Ollama."""
     try:
-
         # Authenticate user
         user = auth()
         
@@ -74,10 +63,11 @@ def chat():
         chat = Chat(user)
 
         if flask.request.method == 'DELETE':
-            chat.delete_history()
+            # Delete history and get new welcome message
+            new_history = chat.delete_history()
             return flask.jsonify({
                 "status": "success",
-                "history": chat.get_history()
+                "history": new_history
             }), 200
             
         # Handle POST request
@@ -88,14 +78,37 @@ def chat():
             return flask.jsonify({"history": chat.get_history()}), 200
             
         try:
-            # Process the message and get response
-            assistant_response = chat.process_message(request_data["prompt"])
+            # Process the message and get streaming response
+            response = chat.process_message(request_data["prompt"])
             
-            return flask.jsonify({
-                'response': assistant_response,
-                'history': chat.get_history()
-            }), 200
+            def generate():
+                collected_response = ""
+                try:
+                    for line in response.iter_lines():
+                        if line:
+                            try:
+                                chunk = json.loads(line)
+                                if chunk.get("message", {}).get("content"):
+                                    content = chunk["message"]["content"]
+                                    collected_response += content
+                                    yield f"data: {json.dumps({'content': content})}\n\n"
+                            except json.JSONDecodeError:
+                                log.warning(f"Failed to parse chunk: {line}")
+                                continue
+                    
+                    # After streaming is done, save the complete response to history
+                    if collected_response:
+                        chat._add_message(collected_response.strip(), "assistant")
+                        chat._save()
+                        
+                except Exception as e:
+                    log.error(f"Error in stream processing: {str(e)}")
+                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                finally:
+                    yield "data: [DONE]\n\n"
             
+            return flask.Response(generate(), mimetype='text/event-stream')
+                
         except (json.JSONDecodeError, ValueError) as e:
             log.error(f"Error in Ollama request: {str(e)}")
             return flask.jsonify({"error": str(e)}), 500
