@@ -14,6 +14,7 @@ def init_app():
 
     with app.app_context():
 
-        from .routes import home, count, ping
+        # Import routes module which will register all routes with app
+        from . import routes
 
         return app

@@ -8,6 +8,11 @@ class Config:
     # REDIS ###############
     REDIS_HOST = os.environ.get("REDIS_HOST")
 
+    # OLLAMA ###############
+    OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "mistral")  # default to mistral if not set
+    OLLAMA_TEMPERATURE = float(os.environ.get("OLLAMA_TEMPERATURE", "0.8"))  # default to 0.8
+    OLLAMA_TOP_P = float(os.environ.get("OLLAMA_TOP_P", "0.9"))  # default to 0.9
+
     # DATADOG ###############
     DD_CLIENT_TOKEN = os.environ.get("DD_CLIENT_TOKEN")
     DD_APPLICATION_ID = os.environ.get("DD_APPLICATION_ID")

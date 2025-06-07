@@ -1,6 +1,19 @@
-html { 
-    height: 100% ;
+html, body { 
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+html {
     background: var(--green);
+}
+
+body {
+    box-sizing: border-box;
+    position: relative;
+    min-height: 100vh; /* Use viewport height */
+    display: flex;
+    flex-direction: column;
 }
 
 :root {
@@ -13,115 +26,159 @@ html {
 
 * {
     font-family: "Verdana";
+    box-sizing: border-box;
 }
 
-body {
-
-    width: 600px;
-    height: 100%;
-    margin-top: 50px;
-    margin-left: auto;
-    margin-right: auto;
-
-    display: flex ;
+/* User Info Container */
+.user-info {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--dgreen);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 4px 4px 2px 0 rgba(0, 0, 0, 0.2);
+    display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    row-gap: 20px;
-
+    gap: 5px;
+    z-index: 100;
 }
 
-h2 {
-    color: var(--beige);;
-    font-size: 24px;
-    text-align: center;
-    margin: 20px auto 20px auto
+.user-info span {
+    color: var(--beige);
+    font-size: 14px;
 }
 
-p {
-    color: var(--beige);;
-    font-size: 16px;
-    text-align: center;
-    margin: 0px auto auto auto
+.user-id {
+    font-weight: bold;
 }
 
-div[flex] {
+/* Chat Thread Container */
+.chat-thread {
+    flex: 1;  /* Take up all available space */
+    margin: 0 auto;
+    width: 800px;
+    background: transparent;
     display: flex;
-    width: fit-content;
-    height: fit-content;
-    gap: 20px;
+    flex-direction: column;
+    overflow-y: auto; /* Enable scrolling at this level */
+    padding: 60px 0 160px 0; /* Space for header and footer */
 }
 
-button {
-    
-    height: 200px;
-    width: 200px ;
-    
-    cursor: pointer;
-    
-    padding: 2px;
-    
+.messages {
+    flex: 1;
     display: flex;
-    align-items: stretch ;
-    gap: 2px ;
-    
-    position: relative ;
-    
-    z-index: 10;
-    border-radius: 6px;
-    border: none;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+}
+
+.message {
+    max-width: 80%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin: 5px 0;
+    box-shadow: 4px 4px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.user-message {
+    background: var(--green);
+    color: var(--beige);
+    align-self: flex-end;
+}
+
+.assistant-message {
+    background: var(--dgreen);
+    color: var(--beige);
+    align-self: flex-start;
+}
+
+
+/* Chat Controls Container */
+.chat-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
     background: var(--beige);
-    
+    border-radius: 10px;
     box-shadow: 8px 8px 2px 0 rgba(0, 0, 0, 0.4);
-    
+    padding: 20px;
+    z-index: 100;
 }
 
-button {
-    background: var(--beige);    
+.message-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
-button span {
-    color: var(--green);
-    font-size: 128px;
-    text-align: center;
-    margin:auto
+.message-input textarea {
+    flex-grow: 1;
+    padding: 10px;
+    border: 2px solid var(--green);
+    border-radius: 5px;
+    resize: none;
+    height: 40px;
+    font-family: inherit;
+    background: var(--beige);
+    color: var(--dgreen);
 }
 
-button[loading] span {
-    color: var(--beige) !important;
+.message-input textarea:focus {
+    outline: none;
+    border-color: var(--orange);
 }
 
-button[ok] {
+.message-input button {
+    padding: 10px 20px;
+    background: var(--green);
+    color: var(--beige);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.2s;
+    height: auto;
+    width: auto;
+    box-shadow: 4px 4px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.message-input button:hover {
     background: var(--dgreen);
 }
-button[error] {
-    background: var(--red);    
+
+.message-input button:disabled {
+    background: var(--dgreen);
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 
-button:hover{
-    box-shadow: 5px 5px 2px 0 rgba(0, 0, 0, 0.4);
+.chat-actions {
+    display: flex;
+    justify-content: flex-end;
 }
 
-button:active{
-    box-shadow: 1px 1px 2px 0 rgba(0, 0, 0, 0.4);
+.clear-chat-btn {
+    padding: 8px 16px;
+    background: var(--red);
+    color: var(--beige);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    height: auto;
+    width: auto;
+    box-shadow: 4px 4px 2px 0 rgba(0, 0, 0, 0.2);
 }
 
-
-@keyframes spin {
-    0%   { transform: rotate(0deg)   }
-    100% { transform: rotate(360deg) }
+.clear-chat-btn:hover {
+    background: #6a0f02;
 }
 
-
-button svg {
-    visibility: hidden;
-    position: absolute;
-    fill: var(--green);
-    width: 200px;
-    height: 200px;
-    animation: spin 5s linear infinite;
+.clear-chat-btn:active {
+    transform: translateY(1px);
+    box-shadow: 2px 2px 2px 0 rgba(0, 0, 0, 0.2);
 }
 
-button[loading] svg {
-    visibility: visible !important;
-}

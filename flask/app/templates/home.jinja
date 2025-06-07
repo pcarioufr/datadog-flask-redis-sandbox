@@ -9,7 +9,6 @@
     <!-- token={{clientToken}} -->
     <!-- user_id={{user_id}} -->
     <!-- user_email={{user_email}} -->
-    <!-- user_init_count={{user_init_count}} -->
     <!-- is_anonymous={{is_anonymous}} -->
 
 
@@ -71,54 +70,157 @@
 
 
     <meta charset="utf-8">
-    <title>sandbox</title>
+    <title>Chat Sandbox</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}" />
 
-
-</div>
 
 </head>
 
 <body>
-
-    <h2> Welcome, {{user_id}}.</h2>
-    <div flex>
-        <button counter id="big-button"> 
-            <span> {{user_init_count}} </span>
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path fill="none" d="M0 0h24v24H0z"></path><path d="M12 2a1 1 0 0 1 1 1v3a1 1 0 0 1-2 0V3a1 1 0 0 1 1-1zm0 15a1 1 0 0 1 1 1v3a1 1 0 0 1-2 0v-3a1 1 0 0 1 1-1zm10-5a1 1 0 0 1-1 1h-3a1 1 0 0 1 0-2h3a1 1 0 0 1 1 1zM7 12a1 1 0 0 1-1 1H3a1 1 0 0 1 0-2h3a1 1 0 0 1 1 1zm12.071 7.071a1 1 0 0 1-1.414 0l-2.121-2.121a1 1 0 0 1 1.414-1.414l2.121 2.12a1 1 0 0 1 0 1.415zM8.464 8.464a1 1 0 0 1-1.414 0L4.93 6.344a1 1 0 0 1 1.414-1.415L8.464 7.05a1 1 0 0 1 0 1.414zM4.93 19.071a1 1 0 0 1 0-1.414l2.121-2.121a1 1 0 1 1 1.414 1.414l-2.12 2.121a1 1 0 0 1-1.415 0zM15.536 8.464a1 1 0 0 1 0-1.414l2.12-2.121a1 1 0 0 1 1.415 1.414L16.95 8.464a1 1 0 0 1-1.414 0z"/>
-            </svg> 
-        </button>
+    <div class="user-info">
+        <span class="user-id">{{user_id}}</span>
+        <span class="user-email">{{user_email}}</span>
     </div>
-    <p> click me :) </p>
+    
+    <div class="chat-thread">
+        <div class="messages" id="chat-messages"></div>
+
+    </div>
+    
+    <div class="chat-controls">
+        <div class="message-input">
+            <textarea 
+                id="chat-input" 
+                placeholder="Type your message here..."
+                onkeydown="if(event.keyCode === 13 && !event.shiftKey) { event.preventDefault(); sendMessage(); }">
+            </textarea>
+            <button onclick="sendMessage()" id="send-button">Send</button>
+        </div>
+        <div class="chat-actions">
+            <button id="clear-chat-button" class="clear-chat-btn">Clear Chat History</button>
+        </div>
+    </div>
 
     <script>
+        const messageInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const messagesContainer = document.getElementById('chat-messages');
 
-        let bigbutton = document.getElementById("big-button")
-        let counter = bigbutton.querySelector("span")
+        // Load chat history when page loads
+        async function loadChatHistory() {
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        initial_load: true
+                    })
+                });
 
-        bigbutton.onclick = ( _ => {
-
-            if ( bigbutton.hasAttribute("loading") ) { return }
-            bigbutton.removeAttribute("error");
-            bigbutton.setAttribute("loading","");
-
-            fetch( "/count/{{user_id}}", { method: "POST" } )
-            .then( response => {
-
-                bigbutton.removeAttribute("loading");
-
-                if (response.status >= 400) { 
-                    bigbutton.setAttribute("error","");
-                    throw new Error('oops!');
+                const data = await response.json();
+                
+                if (data.history && data.history.length > 0) {
+                    // Display each message from history
+                    data.history.forEach(msg => {
+                        addMessage(msg.content, msg.role === 'user');
+                    });
                 }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                addMessage('Hello! How can I help you today?', false);
+            }
+        }
 
-                return response.json()
-            })
-            .then( data => counter.innerText = data.count )
-            .catch(e => console.error(e, e.stack) )
-        })
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+            messageDiv.textContent = content;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
 
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Disable input while processing
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+
+            // Add user message to chat
+            addMessage(message, true);
+            messageInput.value = '';
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: message
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.response) {
+                    addMessage(data.response, false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Sorry, there was an error processing your request.', false);
+            } finally {
+                // Re-enable input
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Load chat history when page loads
+        loadChatHistory();
+
+        // Add event listener for Enter key
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Add clear chat functionality
+        document.getElementById('clear-chat-button').addEventListener('click', async () => {
+            if (confirm('Are you sure you want to clear your chat history? This cannot be undone.')) {
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'DELETE'
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Clear the chat messages container
+                        messagesContainer.innerHTML = '';
+                        
+                        // Display the new welcome message
+                        if (data.history && data.history.length > 0) {
+                            data.history.forEach(msg => {
+                                addMessage(msg.content, msg.role === 'user');
+                            });
+                        }
+                    } else {
+                        console.error('Failed to clear chat:', data.error);
+                        alert('Failed to clear chat history. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Error clearing chat:', error);
+                    alert('An error occurred while clearing chat history. Please try again.');
+                }
+            }
+        });
     </script>
 
 </body>

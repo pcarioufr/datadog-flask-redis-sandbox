@@ -3,3 +3,6 @@ datadog/run
 
 .terraform*
 terraform.tfstate*
+
+*.bkp
+*.DS_Store

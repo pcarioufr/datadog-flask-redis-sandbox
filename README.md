@@ -1,14 +1,14 @@
 ## Overview
 
-A dummy webapp, where users click a button and things happen. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
+A dummy webapp with a chat interface powered by Ollama LLM. Instrumented with Datadog for Metrics, RUM, Logs and Traces.
 
 ![app overview](/app.png)
 
 **NGINX** proxies all incoming HTTP requests.
 
-**Flask** handles cookie-based authentication, web page template rendering and some back-end plumbery.
+**Flask** handles cookie-based authentication, web page template rendering, and chat functionality with LLM integration.
 
-Clicking the big button increments a counter for that user, stored in **Redis**. But it may fail, and run take 100s of milliseconds to run.
+**Redis** stores chat history for each user.
 
 The webapp comes with a basic collection of Datadog Monitors and Dashboards, deployable through a wrapped and dockerized [Terraform CLI](https://developer.hashicorp.com/terraform/cli/commands). 
 
@@ -27,14 +27,16 @@ The webapp comes with a basic collection of Datadog Monitors and Dashboards, dep
 
 5. Update the `NOTIF_EMAIL` in the `.env` file with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
 
+5. Update the `OLLAMA_MODEL` in the `.env` file to match your running Ollama model (run `ollama ps` to see which models are running)
+
 6. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations), 
 * once you created the private location, get its configutation point and secrets, and update accordingly `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file. 
 * You may discard the json file, you won't need it. And skip the "Install your Private Location" step, it's already prebaked in this sandbox.
-* run `http://nginx:80/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
+* run `http://nginx:80/api/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
 
 ### Run
 
-Run `docker compose up` from a terminal at the root of the `redis-sandbox` folder:
+Run `docker compose up` from a terminal at the root of the `datadog-flask-redis-sandbox` folder:
 
 ```bash
 $ docker compose up   
@@ -73,7 +75,7 @@ Terraform has been successfully initialized!
 ``` bash
 $ ./terraform.sh apply
 [...]
-Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 ```
 
 ``` bash
@@ -87,7 +89,7 @@ $ ./terraform.sh output monitor_tags
 ``` bash
 $ ./terraform.sh destroy
 [...]
-Destroy complete! Resources: 3 destroyed.
+Destroy complete! Resources: 2 destroyed.
 ```
 
 ### Observe

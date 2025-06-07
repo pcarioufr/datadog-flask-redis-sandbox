@@ -1,5 +1,3 @@
-
-
 services:
 
   nginx:
@@ -30,6 +28,8 @@ services:
     volumes:
       - ./flask:/flask
       - ../static:/data/static:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # to access a local ollama server
     environment:
       - DD_SERVICE=flask
       - DD_ENV
@@ -37,13 +37,19 @@ services:
       - DD_CLIENT_TOKEN
       - DD_APPLICATION_ID
       - DD_SITE
+      - DD_API_KEY
       - DD_LOGS_ENABLED=true
       - DD_LOGS_INJECTION=true
       - DD_TRACE_ANALYTICS_ENABLED=true
+      - DD_LLMOBS_ENABLED=1
+      - DD_LLMOBS_ML_APP=ollama
       - DD_AGENT_HOST=datadog
       - DD_TRACE_AGENT_PORT=8126
       - FLASK_SECRET=somesupersecret
       - REDIS_HOST=redis
+      - OLLAMA_MODEL # ollama model to use for chat
+      - OLLAMA_TEMPERATURE=0.8  # control creativity (0.0-1.0)
+      - OLLAMA_TOP_P=0.9  # nucleus sampling parameter
     labels:
       com.datadoghq.ad.logs: '[{"source": "python", "service": "flask", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "\\[?\\d{4}-\\d{2}-\\d{2}"}]}]'
     expose:
@@ -63,7 +69,7 @@ services:
       com.datadoghq.ad.logs: '[{"source": "redis", "service": "redis"}]'
       com.datadoghq.ad.check_names: '["redisdb"]'
       com.datadoghq.ad.init_configs: '[{}]'
-      com.datadoghq.ad.instances: '[{"host":"%%host%%","port":"6379"}]'
+      com.datadoghq.ad.instances: '[{"host":"%%host%%","port":"6379","command_stats":true}]'
     environment:
       - DD_SERVICE
       - DD_ENV
