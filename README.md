@@ -1,4 +1,4 @@
-## Overview
+# Overview
 
 A webapp chat interface for Ollama LLM, whose primary intent is to Dogfood Datadog.
 
@@ -13,9 +13,8 @@ A webapp chat interface for Ollama LLM, whose primary intent is to Dogfood Datad
 The webapp comes with a basic collection of Datadog Monitors and Dashboards, deployable through a wrapped and dockerized [Terraform CLI](https://developer.hashicorp.com/terraform/cli/commands). 
 
 
-## How To 
 
-### Setup
+# Get LLM-2000 up and running
 
 1. install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
@@ -37,9 +36,8 @@ The webapp comes with a basic collection of Datadog Monitors and Dashboards, dep
         
     g. Run `http://nginx:80/api/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
 
-### Run
 
-Run `docker compose up` from a terminal at the root of the `datadog-flask-redis-sandbox` folder:
+4. Run `docker compose up` from a terminal at the root of the `datadog-flask-redis-sandbox` folder:
 
 ```bash
 $ docker compose up   
@@ -51,20 +49,38 @@ $ docker compose up
  ✔ Container flask        Started    0.3s
 ```
 
-Ctrl-C would kill the app.
 
+# Usage
 
-### Play
-
+## webapp usage
 From a web browser:
 
 Connect to `http://localhost:8000`. You'll be logged in as a random user `abcd1234@sandbox.com`. Alternatively, log in as any user injecting their user_id in the URL (yay... security): `http://localhost:8000/?user_id=john.doe`.
 
-
 Your cookie expires when you close your browser.
 
+## API Usage
 
-### Terraform
+The application provides a programmatic API endpoint for direct chat interactions. The system prompt is optional:
+
+```bash
+
+curl -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "What is your favorite color?",
+    "system_prompt": "You must respond to all questions with text in CAPITAL LETTERS only."
+  }'
+```
+
+
+
+# Datadog
+
+
+## Terraform
+
+Use terraform to setup some default observability
 
 Terraform runs within a docker container, with working directory properly wired to the terraform configuration (see [--chdir option](https://developer.hashicorp.com/terraform/cli/commands#switching-working-directory-with-chdir) )
 
@@ -95,7 +111,7 @@ $ ./terraform.sh destroy
 Destroy complete! Resources: 2 destroyed.
 ```
 
-### Observe
+## Observe
 
 * [Service Catalog](https://app.datadoghq.com/metric/summary?tags=env%3Asandbox)
 * [Metrics](https://app.datadoghq.com/metric/summary)
@@ -107,6 +123,7 @@ Destroy complete! Resources: 2 destroyed.
 
 
 
-## License
+# License
 
 MIT
+
