@@ -31,13 +31,11 @@ The webapp comes with a basic collection of Datadog Monitors and Dashboards, dep
 
     d. Update the `OLLAMA_MODEL` in the `.env` file to match your running Ollama model (run `ollama ps` to see which models are running)
 
-    e. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations). 
+    e. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations).
+    
+    f. Once you created the private location, get its configutation point and secrets, and update accordingly `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file. You may discard the json file, you won't need it. And skip the "Install your Private Location" step, it's already prebaked in this sandbox.  
         
-        * Once you created the private location, get its configutation point and secrets, and update accordingly `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file.  
-        
-        * You may discard the json file, you won't need it. And skip the "Install your Private Location" step, it's already prebaked in this sandbox.
-
-        * run `http://nginx:80/api/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
+    g. Run `http://nginx:80/api/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
 
 ### Run
 
