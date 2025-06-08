@@ -4,7 +4,7 @@ from app.logs import log
 from app.services.chat_service import ChatService
 from .auth import auth
 
-@app.route("/api/prompt", methods=['GET', 'POST'])
+@app.route("/ui/prompt", methods=['GET', 'POST'])
 def prompt():
     """Endpoint for managing chat prompts."""
     try:
@@ -39,7 +39,7 @@ def prompt():
         log.error(f"Error in prompt endpoint: {str(e)}")
         return flask.jsonify({"error": str(e)}), 500
 
-@app.route("/api/prompt/default", methods=['GET'])
+@app.route("/ui/prompt/default", methods=['GET'])
 def default_prompt():
     """Endpoint for getting the default prompt."""
     try:

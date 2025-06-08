@@ -84,12 +84,12 @@ class ChatService:
         self.add_message(message_content, "user")
         
         # Get streaming response from LLM
-        return LLMService.generate_response(self.history, self.get_prompt())
+        return LLMService.generate_response_stream(self.history, self.get_prompt())
         
     @tracer.wrap(name="chat.get_welcome_message")
     def get_welcome_message(self):
         """Get a streaming welcome message."""
-        return LLMService.generate_response(
+        return LLMService.generate_response_stream(
             [{"role": "user", "content": "Please provide a brief, welcoming message."}],
             self.get_prompt()
         )

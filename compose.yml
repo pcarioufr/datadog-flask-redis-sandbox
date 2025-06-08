@@ -48,10 +48,11 @@ services:
       - FLASK_SECRET=somesupersecret
       - REDIS_HOST=redis
       - OLLAMA_MODEL # ollama model to use for chat
-      - OLLAMA_TEMPERATURE=0.8  # control creativity (0.0-1.0)
-      - OLLAMA_TOP_P=0.9  # nucleus sampling parameter
+      - OLLAMA_TEMPERATURE=0.5  # control creativity (0.0-1.0)
+      - OLLAMA_TOP_P=0.7  # nucleus sampling parameter
       - OLLAMA_NUM_PREDICT=512  # max number of tokens to generate
       - OLLAMA_NUM_CTX=4096  # context window size
+      - OLLAMA_HOST=http://host.docker.internal:11434
     labels:
       com.datadoghq.ad.logs: '[{"source": "python", "service": "flask", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "\\[?\\d{4}-\\d{2}-\\d{2}"}]}]'
     expose:

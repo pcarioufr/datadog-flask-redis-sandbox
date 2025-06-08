@@ -14,6 +14,7 @@ class Config:
     OLLAMA_TOP_P = float(os.environ.get("OLLAMA_TOP_P", "0.9"))  # default to 0.9
     OLLAMA_NUM_PREDICT = int(os.environ.get("OLLAMA_NUM_PREDICT", 512))  # default to 512
     OLLAMA_NUM_CTX = int(os.environ.get("OLLAMA_NUM_CTX", 4096))  # default to 4096
+    OLLAMA_HOST = os.environ.get("OLLAMA_HOST")
 
     # DATADOG ###############
     DD_CLIENT_TOKEN = os.environ.get("DD_CLIENT_TOKEN")

@@ -1,21 +1,21 @@
 class ChatService {
     static async checkChatExists() {
-        const response = await fetch('/api/chat');
+        const response = await fetch('/ui/chat');
         return response.json();
     }
 
     static async loadPrompt() {
-        const response = await fetch('/api/prompt');
+        const response = await fetch('/ui/prompt');
         return response.json();
     }
 
     static async loadDefaultPrompt() {
-        const response = await fetch('/api/prompt/default');
+        const response = await fetch('/ui/prompt/default');
         return response.json();
     }
 
     static async savePrompt(prompt) {
-        const response = await fetch('/api/prompt', {
+        const response = await fetch('/ui/prompt', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt })
@@ -25,13 +25,13 @@ class ChatService {
     }
 
     static async clearChat() {
-        const response = await fetch('/api/chat', { method: 'DELETE' });
+        const response = await fetch('/ui/chat', { method: 'DELETE' });
         if (!response.ok) throw new Error('Failed to clear chat');
         return response.json();
     }
 
     static async getWelcomeMessage() {
-        return fetch('/api/chat/welcome', {
+        return fetch('/ui/chat/init', {
             headers: {
                 'Accept': 'text/event-stream'
             }
@@ -39,7 +39,7 @@ class ChatService {
     }
 
     static async sendMessage(message) {
-        return fetch('/api/chat', {
+        return fetch('/ui/chat', {
             method: 'POST',
             headers: {
                 'Accept': 'text/event-stream',

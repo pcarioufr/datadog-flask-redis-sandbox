@@ -3,9 +3,10 @@ import flask
 from flask import current_app as app
 from app.logs import log
 from app.services.chat_service import ChatService
+from app.services.llm_service import LLMService
 from .auth import auth
 
-@app.route("/api/chat/welcome", methods=['GET'])
+@app.route("/ui/chat/init", methods=['GET'])
 def welcome():
     """Get a welcome message and initialize chat."""
     try:
@@ -47,7 +48,7 @@ def welcome():
         log.error(f"Error getting welcome message: {str(e)}")
         return flask.jsonify({"error": str(e)}), 500
 
-@app.route("/api/chat", methods=['GET', 'POST', 'DELETE'])
+@app.route("/ui/chat", methods=['GET', 'POST', 'DELETE'])
 def chat():
     """Chat endpoint handling streaming responses from Ollama."""
     try:
@@ -111,5 +112,40 @@ def chat():
             return flask.jsonify({"error": str(e)}), 500
             
     except Exception as e:
-        log.error(f"Error in chat endpoint: {str(e)}")
+        log.error(f"Error in UI chat endpoint: {str(e)}")
+        return flask.jsonify({"error": str(e)}), 500
+
+@app.route("/api/chat", methods=['POST'])
+def api_chat():
+    """Simple chat endpoint for programmatic API use.
+    No authentication, no streaming, no persistence.
+    
+    Request body:
+    {
+        "prompt": "The user message to respond to",
+        "system_prompt": "(optional) System prompt to control model behavior"
+    }
+    """
+    try:
+        request_data = flask.request.get_json()
+        if not request_data or 'prompt' not in request_data:
+            return flask.jsonify({
+                "error": "Missing prompt in request"
+            }), 400
+
+        # Prepare messages for LLM
+        messages = []
+        if "system_prompt" in request_data:
+            messages.append({"role": "system", "content": request_data["system_prompt"]})
+        messages.append({"role": "user", "content": request_data["prompt"]})
+
+        # Get direct response from LLM service
+        response = LLMService.generate_response_sync(messages)
+        
+        return flask.jsonify({
+            "response": response
+        }), 200
+            
+    except Exception as e:
+        log.error(f"Error in API chat endpoint: {str(e)}")
         return flask.jsonify({"error": str(e)}), 500 
