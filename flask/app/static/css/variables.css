@@ -1,0 +1,40 @@
+/* ==========================================================================
+   CSS Variables & Root Styles
+   ========================================================================== */
+:root {
+    /* Colors */
+    --red: #811303;
+    --green: #0c6f50;
+    --dgreen: #094633;
+    --purple: #631a82;
+    --dpurple: #400958;
+    --beige: #ece2ce;
+    --dark: #1e1e1e;
+    --ddark: #080808;
+    --orange: #e8a218;
+    
+    /* Shadows */
+    --shadow-sm: 2px 2px 2px 0 rgba(0, 0, 0, 0.2);
+    --shadow-md: 4px 4px 2px 0 rgba(0, 0, 0, 0.2);
+    --shadow-lg: 8px 8px 2px 0 rgba(0, 0, 0, 0.4);
+    --button-shadow: rgba(0, 0, 0, 0.2);
+    --button-shadow-hover: rgba(0, 0, 0, 0.3);
+    
+    /* Layout */
+    --chat-width: 800px;
+    --chat-controls-width: 600px;
+    --border-radius-sm: 5px;
+    --border-radius-md: 10px;
+    --border-radius-lg: 15px;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 15px;
+    --spacing-lg: 20px;
+    
+    /* Typography */
+    --font-primary: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+                    Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    --fw-regular: 400;
+    --fw-medium: 500;
+    --fw-semibold: 600;
+} 

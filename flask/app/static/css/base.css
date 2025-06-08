@@ -1,0 +1,30 @@
+/* ==========================================================================
+   Base Styles & Reset
+   ========================================================================== */
+html, body { 
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    background: var(--dark);
+    background: linear-gradient(var(--dark) 0%, var(--ddark) 100%);
+}
+
+body {
+    box-sizing: border-box;
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-weight: var(--fw-regular);
+}
+
+* {
+    font-family: var(--font-primary);
+    box-sizing: border-box;
+} 

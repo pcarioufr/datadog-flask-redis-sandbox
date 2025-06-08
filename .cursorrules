@@ -1,0 +1,139 @@
+# Cursor Rules
+
+## Maintenance Rules
+- This file must be kept in sync with codebase changes
+- Update this file when:
+  - Adding/removing components or services
+  - Changing file locations or renaming files
+  - Modifying API endpoints
+  - Adding new CSS modules or major selectors
+  - Changing data structures or dependencies
+  - Refactoring component relationships
+- Each update should maintain:
+  - Accurate file locations
+  - Current component relationships
+  - Up-to-date API documentation
+  - Correct CSS selector references
+
+# Chat Application Structure
+
+## Configuration
+- Environment Variables tracked in the .env file used in compose.yml:
+  - `DD_ENV`: Datadog environment
+  - `DD_VERSION`: Application version
+  - `DD_SITE`: Datadog site
+  - `DD_TAGS`: Datadog tags to add to the agent
+  - `DD_CLIENT_TOKEN`: RUM client token
+  - `NOTIF_EMAIL`: Email address to send Datadog notifications to
+  - `DD_APPLICATION_ID`: RUM application ID
+  - `OLLAMA_MODEL`: OLLAMA model to use for chat
+  - `DD_API_KEY`: Datadog API key [sensitive]
+  - `DD_APP_KEY`: Datadog application key [sensitive]
+  - `DD_CLIENT_TOKEN`: Datadog client token [sensitive]
+  - `DATADOG_SECRET_ACCESS_KEY`: Datadog secret access key for Synthetics worker [sensitive]
+  - `DATADOG_PUBLIC_KEY_PEM`: Datadog public key for Synthetics worker [sensitive]
+  - `DATADOG_PRIVATE_KEY`: Datadog private key for Synthetics worker [sensitive]
+
+- Default Files:
+  - `default_prompt.txt`: Default system prompt for new chats
+    - Location: flask/default_prompt.txt
+    - Used when no user-specific prompt exists
+    - Can be overridden per user through the UI
+
+## Common Debugging Tips
+- Redis data inspection:
+  - Chat history: `HGETALL chat:{user_id}`
+  - System prompt: `GET prompt:{user_id}`
+- Stream processing:
+  - Check browser console for token processing logs
+  - SSE connections visible in Network tab
+- CSS debugging:
+  - Button sizes: header buttons (32px), main buttons (40px)
+  - Color variables in variables.css for theming
+
+## External Resources
+- Icons: [Remix Icon](https://remixicon.com/) (prefix: ri-*)
+  - Using fill variants for consistent style
+  - SVG format for better scaling
+
+## Backend Components
+- `app`: Main Flask application
+  - Location: flask/app/__init__.py
+  - Related: app configuration, Datadog setup, Redis client initialization
+
+- `ChatService`: Core chat logic and Redis operations
+  - Location: flask/app/services/chat_service.py
+  - Related: chat history, prompt management, message streaming
+
+## API Routes
+- Location: flask/app/api/routes.py
+  - GET `/api/chat`: Check chat existence and load history
+  - POST `/api/chat`: Send message and get streaming response
+  - DELETE `/api/chat`: Clear chat history
+  - GET `/api/chat/welcome`: Get streaming welcome message
+  - GET `/api/prompt`: Load system prompt
+  - POST `/api/prompt`: Save system prompt
+
+## Dependencies
+- Redis: Chat history and prompt storage
+  - Connection: REDIS_URL environment variable
+  - Data structure: Hash for chat history, String for system prompt
+  - Keys: `chat:{user_id}` for history, `prompt:{user_id}` for system prompt
+
+- Datadog: Monitoring and tracing
+  - APM tracing on all routes
+  - RUM monitoring in frontend
+  - Log collection from both frontend and backend
+
+## Frontend Components
+- `ChatUI`: Main UI class handling DOM interactions and visual updates
+  - Location: flask/app/static/js/ChatUI.js
+  - Related: message display, button controls, input handling
+
+- `ChatManager`: Core frontend logic and state management
+  - Location: flask/app/static/js/ChatManager.js
+  - Related: chat flow, modal handling, API interactions
+
+- `ChatService`: API communication layer
+  - Location: flask/app/static/js/services/ChatService.js
+  - Related: HTTP requests, chat operations
+
+## Stream Processing
+- `TokenBuffer`: Handles streaming text buffering and display
+  - Location: flask/app/static/js/stream/TokenBuffer.js
+  - Related: text streaming, smooth display
+
+- `StreamProcessor`: Processes server-sent events
+  - Location: flask/app/static/js/stream/StreamProcessor.js
+  - Related: SSE handling, token processing
+
+## Styling Structure
+- Main styles: flask/app/static/css/main.css
+  - Imports all other CSS modules
+
+- Component styles: flask/app/static/css/components.css
+  - Button styles (.button)
+  - User info styles (.user-info)
+  - Chat controls (.chat-actions)
+  - Message input (.message-input-container)
+
+- Modal styles: flask/app/static/css/modal.css
+  - Modal layout (.modal)
+  - Modal content (.modal-content)
+  - Form elements (.form-group)
+
+- Variables: flask/app/static/css/variables.css
+  - Color scheme (--purple, --beige, etc.)
+  - Spacing variables
+  - Typography settings
+
+## Icons
+- Location: flask/app/static/js/icons.js
+- Contains all SVG icons used in the application
+- Uses Remix Icon set (ri-*) for consistency
+
+## Templates
+- Main template: flask/app/templates/home.jinja
+  - Contains all modal structures
+  - User info component
+  - Chat interface layout 
