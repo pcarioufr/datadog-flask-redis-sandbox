@@ -62,9 +62,36 @@
 </head>
 
 <body>
+    <div class="help-info">
+        <button id="help-button" class="button" title="About"></button>
+    </div>
+
     <div class="user-info">
         <span class="user-id">{{user_id}}</span>
         <button id="edit-user-button" class="button" title="View User Email"></button>
+    </div>
+    
+    <!-- Help/About Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>About LLM-2000</h2>
+            </div>
+            <div class="modal-body">
+                <p>LLM-2000 is a local chat application that uses Ollama to run large language models locally on your machine. It provides a secure and private environment for AI interactions.</p>
+                
+                <p>This project was primarily created to showcase and test Datadog's observability features in the context of LLM applications. It serves as a practical example of integrating Datadog monitoring.</p>
+
+                <h3>Legal Information</h3>
+                <p>© 2025 <a href="https://www.linkedin.com/in/pcariou/" target="_blank" rel="noopener">Pierre Cariou</a></p>
+                <p>Source: <a href="https://github.com/pcarioufr/llm-2000" target="_blank">pcarioufr/llm-2000</a></p>
+                <p>This project is licensed under the MIT License:</p>
+
+            </div>
+            <div class="modal-footer">
+                <button id="close-help" class="button dark" title="Close"></button>
+            </div>
+        </div>
     </div>
     
     <!-- User Settings Modal -->
@@ -104,8 +131,11 @@
                 <textarea id="prompt-editor" rows="10" placeholder="Enter system prompt..."></textarea>
             </div>
             <div class="modal-footer">
-                <button id="save-prompt" class="button beige" title="Save Changes"></button>
-                <button id="cancel-prompt" class="button dark" title="Cancel"></button>
+                <button id="reload-prompt" class="button dark" title="Reload Default Prompt"></button>
+                <div class="right-buttons">
+                    <button id="save-prompt" class="button beige" title="Save Changes"></button>
+                    <button id="cancel-prompt" class="button dark" title="Cancel"></button>
+                </div>
             </div>
         </div>
     </div>

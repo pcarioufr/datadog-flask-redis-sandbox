@@ -23,18 +23,21 @@ The webapp comes with a basic collection of Datadog Monitors and Dashboards, dep
 
 3. Create a [Datadog Org](https://app.datadoghq.com/signup), and update `DD_SITE` in the `.env` file (see [documentation](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference)
 
-4. Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), an [APP key](https://app.datadoghq.com/organization-settings/application-keys) as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), and update `DD_API_KEY`, `DD_APP_KEY` and `DD_CLIENT_TOKEN` accordingly in the `.env` file.
+    a. Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), an [APP key](https://app.datadoghq.com/organization-settings/application-keys) as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), and update `DD_API_KEY`, `DD_APP_KEY` and `DD_CLIENT_TOKEN` accordingly in the `.env` file.
 
-5. Create a [Datadog RUM Application](https://app.datadoghq.com/rum/application/create) for Javascript, and update `DD_APPLICATION_ID` in the `.env` file.
+    b. Create a [Datadog RUM Application](https://app.datadoghq.com/rum/application/create) for Javascript, and update `DD_APPLICATION_ID` in the `.env` file.
 
-6. Update the `NOTIF_EMAIL` in the `.env` file with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
+    c. Update the `NOTIF_EMAIL` in the `.env` file with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
 
-7. Update the `OLLAMA_MODEL` in the `.env` file to match your running Ollama model (run `ollama ps` to see which models are running)
+    d. Update the `OLLAMA_MODEL` in the `.env` file to match your running Ollama model (run `ollama ps` to see which models are running)
 
-8. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations), 
-* once you created the private location, get its configutation point and secrets, and update accordingly `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file. 
-* You may discard the json file, you won't need it. And skip the "Install your Private Location" step, it's already prebaked in this sandbox.
-* run `http://nginx:80/api/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
+    e. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations). 
+        
+        * Once you created the private location, get its configutation point and secrets, and update accordingly `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file.  
+        
+        * You may discard the json file, you won't need it. And skip the "Install your Private Location" step, it's already prebaked in this sandbox.
+
+        * run `http://nginx:80/api/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
 
 ### Run
 
@@ -56,8 +59,8 @@ Ctrl-C would kill the app.
 ### Play
 
 From a web browser:
-* Connect to `http://localhost:8000`. You'll be logged in as a random user `abcd1234@sandbox.com`.
-* Alternatively, log in as any user injecting their user_id in the URL (yay... security): `http://localhost:8000/?user_id=john.doe`.
+
+Connect to `http://localhost:8000`. You'll be logged in as a random user `abcd1234@sandbox.com`. Alternatively, log in as any user injecting their user_id in the URL (yay... security): `http://localhost:8000/?user_id=john.doe`.
 
 
 Your cookie expires when you close your browser.

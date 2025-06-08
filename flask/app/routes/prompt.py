@@ -37,4 +37,21 @@ def prompt():
             
     except Exception as e:
         log.error(f"Error in prompt endpoint: {str(e)}")
-        return flask.jsonify({"error": str(e)}), 500 
+        return flask.jsonify({"error": str(e)}), 500
+
+@app.route("/api/prompt/default", methods=['GET'])
+def default_prompt():
+    """Endpoint for getting the default prompt."""
+    try:
+        with open('/flask/default_prompt.txt', 'r') as f:
+            default_prompt = f.read().strip()
+        return flask.jsonify({
+            "status": "success",
+            "prompt": default_prompt
+        }), 200
+    except Exception as e:
+        log.error(f"Error getting default prompt: {str(e)}")
+        return flask.jsonify({
+            "error": "Failed to load default prompt",
+            "prompt": "You are a helpful AI assistant."
+        }), 500 

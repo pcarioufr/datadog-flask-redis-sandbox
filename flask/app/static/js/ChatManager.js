@@ -26,11 +26,13 @@ class ChatManager {
         const editPromptButton = document.getElementById('edit-prompt-button');
         const saveButton = document.getElementById('save-prompt');
         const cancelButton = document.getElementById('cancel-prompt');
+        const reloadButton = document.getElementById('reload-prompt');
         this.modal = document.getElementById('prompt-modal');
         this.promptEditor = document.getElementById('prompt-editor');
 
         editPromptButton.addEventListener('click', () => this.showPromptModal());
         cancelButton.addEventListener('click', () => this.hidePromptModal());
+        reloadButton.addEventListener('click', () => this.reloadDefaultPrompt());
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) this.hidePromptModal();
         });
@@ -180,6 +182,19 @@ class ChatManager {
         return new Promise(resolve => {
             this.savePromptResolve = resolve;
         });
+    }
+
+    async reloadDefaultPrompt() {
+        try {
+            const response = await ChatService.loadDefaultPrompt();
+            if (response.status === 'success') {
+                this.promptEditor.value = response.prompt;
+            } else {
+                console.error('Failed to load default prompt:', response.error);
+            }
+        } catch (error) {
+            console.error('Error loading default prompt:', error);
+        }
     }
 }
 

@@ -1,5 +1,9 @@
 # Cursor Rules
 
+## Application Name
+- The application name is "LLM-2000"
+- Use this name consistently in all code, documentation, and UI elements
+
 ## Maintenance Rules
 - This file must be kept in sync with codebase changes
 - Update this file when:

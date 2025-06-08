@@ -55,6 +55,42 @@
     margin-bottom: var(--spacing-lg);
 }
 
+.modal-body h3 {
+    color: var(--beige);
+    margin: var(--spacing-lg) 0 var(--spacing-md);
+    font-weight: var(--fw-medium);
+}
+
+.modal-body h3:first-child {
+    margin-top: 0;
+}
+
+.modal-body p {
+    color: var(--beige);
+    margin: var(--spacing-sm) 0;
+    line-height: 1.5;
+}
+
+.modal-body ul {
+    color: var(--beige);
+    margin: var(--spacing-sm) 0;
+    padding-left: var(--spacing-lg);
+}
+
+.modal-body li {
+    margin: var(--spacing-xs) 0;
+    line-height: 1.5;
+}
+
+.modal-body a {
+    color: var(--beige);
+    text-decoration: underline;
+}
+
+.modal-body a:hover {
+    color: white;
+}
+
 #prompt-editor {
     width: 100%;
     min-height: 400px;
@@ -76,6 +112,11 @@
 .modal-footer {
     display: flex;
     justify-content: flex-end;
+    gap: var(--spacing-md);
+}
+
+.modal-footer .right-buttons {
+    display: flex;
     gap: var(--spacing-md);
 }
 

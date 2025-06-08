@@ -9,6 +9,11 @@ class ChatService {
         return response.json();
     }
 
+    static async loadDefaultPrompt() {
+        const response = await fetch('/api/prompt/default');
+        return response.json();
+    }
+
     static async savePrompt(prompt) {
         const response = await fetch('/api/prompt', {
             method: 'POST',
