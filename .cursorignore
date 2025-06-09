@@ -1,1 +1,5 @@
 *.bkp
+*.tfvars
+
+.env/*
+!.env/ollama.env

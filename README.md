@@ -4,40 +4,47 @@ A webapp chat interface for Ollama LLM, whose primary intent is to Dogfood Datad
 
 ![app overview](/app.png)
 
-**NGINX** proxies all incoming HTTP requests.
-
-**Flask** handles cookie-based authentication, web page template rendering, and chat functionality with LLM integration.
-
-**Redis** stores chat history for each user.
-
-The webapp comes with a basic collection of Datadog Monitors and Dashboards, deployable through a wrapped and dockerized [Terraform CLI](https://developer.hashicorp.com/terraform/cli/commands). 
-
 
 
 # Get LLM-2000 up and running
 
 1. install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-2. Install [Ollama](https://ollama.ai/download)
+2. Install [Ollama](https://ollama.ai/download), and download a model of your choice (suggested: [`mistral`](https://ollama.com/library/mistral)). Update the [`.env/ollama.env`](.env/ollame.env) file:
 
-3. Create a [Datadog Org](https://app.datadoghq.com/signup), and update `DD_SITE` in the `.env` file (see [documentation](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference)
+    - Update `OLLAMA_MODEL` to match one of your downloaded Ollama model (run `ollama ps` to see which models are running).
+    - You may use default values for the inference parameters, and/or update later.
 
-    a. Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), an [APP key](https://app.datadoghq.com/organization-settings/application-keys) as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), and update `DD_API_KEY`, `DD_APP_KEY` and `DD_CLIENT_TOKEN` accordingly in the `.env` file.
+3. Create a [Datadog Org](https://app.datadoghq.com/signup), and update the [`.env/datadog.env`](.env/datadog.env) file:
 
-    b. Create a [Datadog RUM Application](https://app.datadoghq.com/rum/application/create) for Javascript, and update `DD_APPLICATION_ID` in the `.env` file.
+    - Update `DD_SITE`. See [documentation](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference.
+    - Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), an [APP key](https://app.datadoghq.com/organization-settings/application-keys) as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), and update `DD_API_KEY`, `DD_APP_KEY` and `DD_CLIENT_TOKEN` accordingly.
+    - Update the `NOTIF_EMAIL` with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
 
-    c. Update the `NOTIF_EMAIL` in the `.env` file with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
+4. Run `./terraform.sh init` and then `./terraform.sh apply` from a terminal at the root of the `llm-2000` folder, to create all Datadog resources and update environment variables in the [.env/](.env) folder with a bunch of new IDs and secrets: 
+    - a RUM Application and a Client Token
+    - a Synthetics Private Location
+    - Dashboards, Monitors, etc.
 
-    d. Update the `OLLAMA_MODEL` in the `.env` file to match your running Ollama model (run `ollama ps` to see which models are running)
+``` bash
+$ ./terraform.sh init
+Initializing the backend...
+[...]
+Terraform has been successfully initialized!
 
-    e. Create a [Datadog Synthetics Private Location](https://app.datadoghq.com/synthetics/settings/private-locations).
-    
-    f. Once you created the private location, get its configutation point and secrets, and update accordingly `DATADOG_ACCESS_KEY`, `DATADOG_SECRET_ACCESS_KEY`, `DATADOG_PUBLIC_KEY_PEM`, `DATADOG_PRIVATE_KEY` in the `.env` file. You may discard the json file, you won't need it. And skip the "Install your Private Location" step, it's already prebaked in this sandbox.
-        
-    g. Run `http://nginx:80/api/ping` when prompted for a test URL (but only after the sandbox runs :) see below).
+$ ./terraform.sh apply
+[...]
+Apply complete! Resources: 8 added, 0 changed, 0 destroyed.
+```
 
+5. Run `docker compose up` from a terminal at the root of the `llm-2000` folder:
 
-4. Run `docker compose up` from a terminal at the root of the `datadog-flask-redis-sandbox` folder:
+    - **nginx** proxies all incoming HTTP requests.
+    - **flask** handles cookie-based authentication, web page template rendering, and chat functionality with an ollama integration.
+    - **redis** stores chat history for each user.
+    - **datadog** is the datadog agent.
+    - **synthetics** is the private location that runs synthetic tests.
+
 
 ```bash
 $ docker compose up   
@@ -52,7 +59,7 @@ $ docker compose up
 
 # Usage
 
-## webapp usage
+## Web app usage
 From a web browser:
 
 Connect to `http://localhost:8000`. You'll be logged in as a random user `abcd1234@sandbox.com`. Alternatively, log in as any user injecting their user_id in the URL (yay... security): `http://localhost:8000/?user_id=john.doe`.
@@ -73,14 +80,7 @@ curl -X POST http://localhost:8000/api/chat \
   }'
 ```
 
-
-
-# Datadog
-
-
-## Terraform
-
-Use terraform to setup some default observability
+## Terraform Usage
 
 Terraform runs within a docker container, with working directory properly wired to the terraform configuration (see [--chdir option](https://developer.hashicorp.com/terraform/cli/commands#switching-working-directory-with-chdir) )
 
@@ -111,6 +111,9 @@ $ ./terraform.sh destroy
 Destroy complete! Resources: 2 destroyed.
 ```
 
+
+# Datadog
+
 ## Observe
 
 * [Service Catalog](https://app.datadoghq.com/metric/summary?tags=env%3Asandbox)
@@ -120,7 +123,6 @@ Destroy complete! Resources: 2 destroyed.
 * [RUM Events](https://app.datadoghq.com/rum/explorer?query=%40type%3Asession)
 
 ... [Dashboards](https://app.datadoghq.com/dashboard/lists), [Monitors](https://app.datadoghq.com/monitors#recommended?q=integration:Redis&p=1)
-
 
 
 # License

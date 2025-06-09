@@ -3,6 +3,12 @@ datadog/run
 
 .terraform*
 terraform.tfstate*
+*.tfvars
 
 *.bkp
 *.DS_Store
+
+# Environment files
+.env/*
+!.env/datadog.env
+!.env/ollama.env

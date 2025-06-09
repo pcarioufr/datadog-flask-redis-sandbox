@@ -3,6 +3,8 @@ services:
   nginx:
     container_name: nginx
     build: ./nginx/build/.
+    env_file:
+      - .env/datadog.env
     restart: unless-stopped
     ports:
       - 8000:80
@@ -18,13 +20,15 @@ services:
       com.datadoghq.ad.logs: '[{"source": "nginx", "service": "nginx"}]'
     environment:
       - DD_SERVICE="nginx"
-      - DD_ENV
-      - DD_VERSION
       - DD_AGENT_HOST=datadog
 
   flask:
     container_name: flask
     build: flask/build/.
+    env_file:
+      - .env/datadog.env
+      - .env/rum.env
+      - .env/ollama.env
     volumes:
       - ./flask:/flask
       - ../static:/data/static:ro
@@ -32,12 +36,6 @@ services:
       - "host.docker.internal:host-gateway" # to access a local ollama server
     environment:
       - DD_SERVICE=flask
-      - DD_ENV
-      - DD_VERSION
-      - DD_CLIENT_TOKEN
-      - DD_APPLICATION_ID
-      - DD_SITE
-      - DD_API_KEY
       - DD_LOGS_ENABLED=true
       - DD_LOGS_INJECTION=true
       - DD_TRACE_ANALYTICS_ENABLED=true
@@ -47,11 +45,7 @@ services:
       - DD_TRACE_AGENT_PORT=8126
       - FLASK_SECRET=somesupersecret
       - REDIS_HOST=redis
-      - OLLAMA_MODEL # ollama model to use for chat
-      - OLLAMA_TEMPERATURE=0.5  # control creativity (0.0-1.0)
-      - OLLAMA_TOP_P=0.7  # nucleus sampling parameter
-      - OLLAMA_NUM_PREDICT=512  # max number of tokens to generate
-      - OLLAMA_NUM_CTX=4096  # context window size
+
       - OLLAMA_HOST=http://host.docker.internal:11434
     labels:
       com.datadoghq.ad.logs: '[{"source": "python", "service": "flask", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "\\[?\\d{4}-\\d{2}-\\d{2}"}]}]'
@@ -64,6 +58,8 @@ services:
   redis:
     container_name: redis
     image: "redis"
+    env_file:
+      - .env/datadog.env
     expose:
       - 6379
     volumes:
@@ -81,11 +77,9 @@ services:
   datadog:
     container_name: datadog
     image: "datadog/agent:7.41.0"
+    env_file:
+      - .env/datadog.env
     environment:
-      - DD_API_KEY
-      - DD_TAGS
-      - DD_ENV
-      - DD_SITE
       - DD_APM_ENABLE=true
       - DD_APM_NON_LOCAL_TRAFFIC=true
       - DD_LOGS_ENABLED=true
@@ -108,16 +102,11 @@ services:
     container_name: synthetics
     image: "datadog/synthetics-private-location-worker"
     platform: linux/amd64 # no docker image for arm64 yet
-    environment:
-      - DATADOG_API_KEY=$DD_API_KEY
-      - DATADOG_ACCESS_KEY
-      - DATADOG_SECRET_ACCESS_KEY
-      - DATADOG_PUBLIC_KEY_PEM 
-      - DATADOG_PRIVATE_KEY
-      - DATADOG_SITE=$DD_SITE
+    env_file:
+      - .env/synthetics.env
+      - .env/datadog.env
     labels:
       com.datadoghq.ad.logs: '[{"source": "synthetics", "service": "synthetics"}]'
-
 
 
 volumes:
