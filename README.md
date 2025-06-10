@@ -18,7 +18,7 @@ A webapp chat interface for Ollama LLM, whose primary intent is to Dogfood Datad
 3. Create a [Datadog Org](https://app.datadoghq.com/signup), and update the [`.env/datadog.env`](.env/datadog.env) file:
 
     - Update `DD_SITE`. See [documentation](https://docs.datadoghq.com/getting_started/site/#access-the-datadog-site) for reference.
-    - Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), an [APP key](https://app.datadoghq.com/organization-settings/application-keys) as well as a [Client Token](https://app.datadoghq.com/organization-settings/client-tokens), and update `DD_API_KEY`, `DD_APP_KEY` and `DD_CLIENT_TOKEN` accordingly.
+    - Get an [API key](https://app.datadoghq.com/organization-settings/api-keys), an [APP key](https://app.datadoghq.com/organization-settings/application-keys), and update `DD_API_KEY`, `DD_APP_KEY` accordingly.
     - Update the `NOTIF_EMAIL` with an email where to send datadog notifications (you can use the email you used for your Datadog Account).
 
 4. Run `./terraform.sh init` and then `./terraform.sh apply` from a terminal at the root of the `llm-2000` folder, to create all Datadog resources and update environment variables in the [.env/](.env) folder with a bunch of new IDs and secrets: 
