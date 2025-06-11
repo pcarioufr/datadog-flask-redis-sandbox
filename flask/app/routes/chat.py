@@ -6,6 +6,10 @@ from app.services.chat_service import ChatService
 from app.services.llm_service import LLMService
 from .auth import auth
 
+from ddtrace.llmobs import LLMObs
+from ddtrace.llmobs.decorators import llm
+
+
 @app.route("/ui/chat/init", methods=['GET'])
 def welcome():
     """Get a welcome message and initialize chat."""
@@ -79,9 +83,13 @@ def chat():
         try:
             # Process the message and get streaming response
             response = chat_service.process_message(request_data["prompt"])
+            collected_content = ""
+            
+            # Capture model name while we have app context
+            model_name = app.config["OLLAMA_MODEL"]
             
             def generate():
-                collected_response = ""
+                nonlocal collected_content
                 try:
                     for line in response.iter_lines():
                         if line:
@@ -89,24 +97,36 @@ def chat():
                                 chunk = json.loads(line)
                                 if chunk.get("message", {}).get("content"):
                                     content = chunk["message"]["content"]
-                                    collected_response += content
+                                    collected_content += content
                                     yield f"data: {json.dumps({'content': content})}\n\n"
                             except json.JSONDecodeError:
                                 log.warning(f"Failed to parse chunk: {line}")
                                 continue
-                    
-                    # After streaming is done, save the complete response to history
-                    if collected_response:
-                        chat_service.add_message(collected_response.strip(), "assistant")
-                        
                 except Exception as e:
                     log.error(f"Error in stream processing: {str(e)}")
                     yield f"data: {json.dumps({'error': str(e)})}\n\n"
                 finally:
                     yield "data: [DONE]\n\n"
             
-            return flask.Response(generate(), mimetype='text/event-stream')
+            # Create the response object
+            response_stream = flask.Response(generate(), mimetype='text/event-stream')
+            
+            # After streaming starts, annotate the conversation
+            def after_request():
+                if collected_content:
+                    collected_response = {"role": "assistant", "content": collected_content.strip()}
+                    with LLMObs.llm(model_name=model_name, model_provider="ollama") as span:
+                        LLMObs.annotate(
+                            span=span,
+                            input_data=chat_service.history[:-1],  # All messages before the response
+                            output_data=collected_response
+                        )
+                    # Save to chat history after successful streaming
+                    chat_service.add_message(collected_response["content"], "assistant")
                 
+            response_stream.call_on_close(after_request)
+            return response_stream
+                    
         except (json.JSONDecodeError, ValueError) as e:
             log.error(f"Error in Ollama request: {str(e)}")
             return flask.jsonify({"error": str(e)}), 500
@@ -142,6 +162,15 @@ def api_chat():
         # Get direct response from LLM service
         response = LLMService.generate_response_sync(messages)
         
+        # Annotate the complete conversation for LLM observabilityAdd commentMore actions
+        with LLMObs.llm(model_name="mistral", model_provider="ollama") as span:
+
+            LLMObs.annotate(
+                span=span,
+                input_data=messages,  # All messages before the response
+                output_data=response
+            )
+
         return flask.jsonify({
             "response": response
         }), 200

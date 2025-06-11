@@ -1,7 +1,5 @@
 import requests
 from flask import current_app as app
-from ddtrace.llmobs import LLMObs
-from ddtrace.llmobs.decorators import llm
 import json
 import logging
 from app.logs import log
@@ -16,7 +14,6 @@ class LLMService:
 
     @staticmethod
     @tracer.wrap(service="ollama", name="generate_response_stream")
-    @llm(model_name=app.config["OLLAMA_MODEL"], model_provider="ollama")
     def generate_response_stream(messages, system_prompt):
         """Generate a streaming response from the LLM."""
         
