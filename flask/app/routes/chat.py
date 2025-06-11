@@ -83,13 +83,12 @@ def chat():
         try:
             # Process the message and get streaming response
             response = chat_service.process_message(request_data["prompt"])
-            collected_content = ""
+            content_parts = []  # Use a list instead of string
             
             # Capture model name while we have app context
             model_name = app.config["OLLAMA_MODEL"]
             
             def generate():
-                nonlocal collected_content
                 try:
                     for line in response.iter_lines():
                         if line:
@@ -97,7 +96,7 @@ def chat():
                                 chunk = json.loads(line)
                                 if chunk.get("message", {}).get("content"):
                                     content = chunk["message"]["content"]
-                                    collected_content += content
+                                    content_parts.append(content)  # Append to list instead of string concatenation
                                     yield f"data: {json.dumps({'content': content})}\n\n"
                             except json.JSONDecodeError:
                                 log.warning(f"Failed to parse chunk: {line}")
@@ -113,17 +112,18 @@ def chat():
             
             # After streaming starts, annotate the conversation
             def after_request():
-                if collected_content:
-                    collected_response = {"role": "assistant", "content": collected_content.strip()}
+                if content_parts:  # Check if we collected any content
+                    collected_content = "".join(content_parts).strip()  # Join at the end
+                    collected_response = {"role": "assistant", "content": collected_content}
                     with LLMObs.llm(model_name=model_name, model_provider="ollama") as span:
                         LLMObs.annotate(
                             span=span,
-                            input_data=chat_service.history[:-1],  # All messages before the response
+                            input_data=chat_service.history,  # Include all messages including user's input
                             output_data=collected_response
                         )
                     # Save to chat history after successful streaming
                     chat_service.add_message(collected_response["content"], "assistant")
-                
+            
             response_stream.call_on_close(after_request)
             return response_stream
                     
