@@ -36,10 +36,16 @@ class ChatService:
         
     @tracer.wrap(name="chat.clear_history")
     def clear_history(self):
-        """Clear chat history."""
+        """Clear chat history and system prompt."""
+        # Clear history
         self.redis_client.delete(self.history_key)
         self.history = []
-        log.info(f"Cleared history for user {self.user.user_id}")
+        
+        # Clear system prompt
+        self.redis_client.delete(self.prompt_key)
+        self._system_prompt = None
+        
+        log.info(f"Cleared history and system prompt for user {self.user.user_id}")
         
     @tracer.wrap(name="chat.add_message")
     def add_message(self, content, role):
@@ -52,21 +58,14 @@ class ChatService:
     def get_prompt(self):
         """Get the current system prompt."""
         if self._system_prompt is None:
-            # Try to get from storage first
+            # Only try to get from storage, never load default
             prompt = self.redis_client.get(self.prompt_key)
             if prompt:
+                log.info(f"Loaded system prompt from Redis for user {self.user.user_id}")
                 self._system_prompt = prompt
             else:
-                # Load default prompt from file
-                try:
-                    with open('/flask/default_prompt.txt', 'r') as f:
-                        self._system_prompt = f.read().strip()
-                        # Store for future use
-                        self.redis_client.set(self.prompt_key, self._system_prompt)
-                    log.info("Loaded default system prompt successfully")
-                except Exception as e:
-                    log.warning(f"Failed to load system prompt: {e}")
-                    self._system_prompt = "You are a helpful AI assistant."
+                log.info(f"No system prompt set for user {self.user.user_id}")
+                self._system_prompt = ""
         return self._system_prompt
         
     @tracer.wrap(name="chat.set_prompt")

@@ -20,9 +20,7 @@ class LLMService:
         # Prepare the request for Ollama with system prompt
         ollama_request = {
             "model": app.config["OLLAMA_MODEL"],
-            "messages": [
-                {"role": "system", "content": system_prompt}
-            ] + messages,
+            "messages": ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages,
             "stream": True,
             "options": {
                 "temperature": app.config["OLLAMA_TEMPERATURE"],

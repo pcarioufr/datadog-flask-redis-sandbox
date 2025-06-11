@@ -23,16 +23,16 @@ def prompt():
             
         # Handle POST request
         request_data = flask.request.get_json()
-        if not request_data or 'prompt' not in request_data:
-            return flask.jsonify({
-                "error": "Missing prompt in request"
-            }), 400
-            
-        # Update prompt
-        new_prompt = chat_service.set_prompt(request_data['prompt'])
+        
+        # If no prompt specified or empty string, clear the system prompt
+        prompt = request_data.get('prompt', '') if request_data else ''
+        
+        # Set (or clear) the prompt
+        chat_service.set_prompt(prompt)
+        
         return flask.jsonify({
             "status": "success",
-            "prompt": new_prompt
+            "prompt": prompt
         }), 200
             
     except Exception as e:

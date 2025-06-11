@@ -22,7 +22,7 @@ async function initializeChat() {
     // 3. Initialize based on chat existence
     if (!chatData.exists) {
         // 3a. For new chats, show prompt modal and wait for user input
-        chatManager.showPromptModal(true);  // true = hide close buttons
+        chatManager.showPromptModal(true, true);  // hideCloseButtons=true, isNewChat=true
         await chatManager.waitForPromptSave();
 
         // Get welcome message

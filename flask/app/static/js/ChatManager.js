@@ -30,7 +30,7 @@ class ChatManager {
         this.modal = document.getElementById('prompt-modal');
         this.promptEditor = document.getElementById('prompt-editor');
 
-        editPromptButton.addEventListener('click', () => this.showPromptModal());
+        editPromptButton.addEventListener('click', () => this.showPromptModal(false, false));
         cancelButton.addEventListener('click', () => this.hidePromptModal());
         reloadButton.addEventListener('click', () => this.reloadDefaultPrompt());
         this.modal.addEventListener('click', (e) => {
@@ -69,9 +69,28 @@ class ChatManager {
         });
     }
 
-    showPromptModal(hideCloseButtons = false) {
+    async showPromptModal(hideCloseButtons = false, isNewChat = false) {
         this.modal.classList.add('show');
-        this.promptEditor.value = this.currentPrompt;
+        
+        if (isNewChat) {
+            // For new chats, load the default prompt automatically
+            try {
+                const response = await ChatService.loadDefaultPrompt();
+                if (response.status === 'success') {
+                    this.promptEditor.value = response.prompt;
+                } else {
+                    console.error('Failed to load default prompt:', response.error);
+                    this.promptEditor.value = '';
+                }
+            } catch (error) {
+                console.error('Error loading default prompt:', error);
+                this.promptEditor.value = '';
+            }
+        } else {
+            // For editing, just show current prompt
+            this.promptEditor.value = this.currentPrompt;
+        }
+        
         this.promptEditor.focus();
 
         const cancelButton = this.modal.querySelector('#cancel-prompt');
@@ -84,11 +103,6 @@ class ChatManager {
 
     async savePrompt() {
         const newPrompt = this.promptEditor.value.trim();
-        if (!newPrompt) {
-            this.ui.addMessage('Please enter a prompt before continuing.', false);
-            return false;
-        }
-
         try {
             await ChatService.savePrompt(newPrompt);
             this.currentPrompt = newPrompt;
