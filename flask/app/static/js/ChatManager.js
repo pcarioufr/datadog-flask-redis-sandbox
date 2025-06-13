@@ -6,10 +6,14 @@ import ChatService from './services/ChatService.js';
 class ChatManager {
     constructor() {
         this.ui = new ChatUI();
-        this.setupEventListeners();
         this.currentPrompt = '';
         this.savePromptResolve = null;  // For handling initial prompt save
         this.isProcessing = false;
+        this.promptEditor = document.getElementById("prompt-editor");
+        this.modelSelect = document.getElementById("model-select");
+        
+        // Initialize event listeners
+        this.setupEventListeners();
     }
 
     setupEventListeners() {
@@ -29,6 +33,7 @@ class ChatManager {
         const reloadButton = document.getElementById('reload-prompt');
         this.modal = document.getElementById('prompt-modal');
         this.promptEditor = document.getElementById('prompt-editor');
+        this.modelSelect = document.getElementById('model-select');
 
         editPromptButton.addEventListener('click', () => this.showPromptModal(false, false));
         cancelButton.addEventListener('click', () => this.hidePromptModal());
@@ -61,16 +66,51 @@ class ChatManager {
         });
 
         saveButton.addEventListener('click', async () => {
-            const success = await this.savePrompt();
+            const success = await this.savePromptAndModel();
             if (success && this.savePromptResolve) {
                 this.savePromptResolve();
                 this.savePromptResolve = null;
             }
         });
+
+        // Load current model on startup
+        this.loadCurrentModel();
+    }
+
+    async loadCurrentModel() {
+        try {
+            const response = await ChatService.loadConfig();
+            if (response.status === 'success') {
+                if (response.model) {
+                    this.modelSelect.value = response.model;
+                }
+                if (response.prompt) {
+                    this.currentPrompt = response.prompt;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading current configuration:', error);
+        }
     }
 
     async showPromptModal(hideCloseButtons = false, isNewChat = false) {
         this.modal.classList.add('show');
+        
+        // Load available models
+        try {
+            const response = await ChatService.getAvailableModels();
+            if (response.status === 'success' && Array.isArray(response.models)) {
+                this.modelSelect.innerHTML = '';
+                response.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    this.modelSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading available models:', error);
+        }
         
         if (isNewChat) {
             // For new chats, load the default prompt automatically
@@ -87,8 +127,18 @@ class ChatManager {
                 this.promptEditor.value = '';
             }
         } else {
-            // For editing, just show current prompt
-            this.promptEditor.value = this.currentPrompt;
+            // For editing, load current prompt if not already loaded
+            if (!this.currentPrompt) {
+                try {
+                    const response = await ChatService.loadConfig();
+                    if (response.status === 'success' && response.prompt) {
+                        this.currentPrompt = response.prompt;
+                    }
+                } catch (error) {
+                    console.error('Error loading current prompt:', error);
+                }
+            }
+            this.promptEditor.value = this.currentPrompt || '';
         }
         
         this.promptEditor.focus();
@@ -101,16 +151,26 @@ class ChatManager {
         this.modal.classList.remove('show');
     }
 
-    async savePrompt() {
+    async savePromptAndModel() {
         const newPrompt = this.promptEditor.value.trim();
+        const newModel = this.modelSelect.value;
+        
         try {
-            await ChatService.savePrompt(newPrompt);
-            this.currentPrompt = newPrompt;
-            this.hidePromptModal();
-            return true;
+            const response = await ChatService.saveConfig({
+                prompt: newPrompt,
+                model: newModel
+            });
+            
+            if (response.status === 'success') {
+                this.currentPrompt = newPrompt;
+                this.hidePromptModal();
+                return true;
+            } else {
+                throw new Error('Failed to save configuration');
+            }
         } catch (error) {
-            console.error('Error saving prompt:', error);
-            this.ui.addMessage('Failed to save prompt. Please try again.', false);
+            console.error('Error saving configuration:', error);
+            this.ui.addMessage('Failed to save changes. Please try again.', false);
             return false;
         }
     }
@@ -193,7 +253,7 @@ class ChatManager {
 
     // Method to wait for prompt save
     waitForPromptSave() {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             this.savePromptResolve = resolve;
         });
     }

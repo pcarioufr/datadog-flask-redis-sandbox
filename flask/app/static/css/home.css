@@ -97,71 +97,6 @@ body {
     font-weight: var(--fw-semibold);
 }
 
-/* Chat Controls & Buttons */
-.button {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px var(--button-shadow),
-               0 4px 8px var(--button-shadow);
-    transform: translateY(0);
-    color: var(--beige);
-}
-
-/* Send button style (purple) */
-#send-button {
-    background: var(--dpurple);
-}
-
-#send-button:hover {
-    background: var(--purple);
-}
-
-/* Chat control buttons style (green) */
-.chat-actions .button {
-    background: var(--dgreen);
-}
-
-.chat-actions .button:hover {
-    background: var(--green);
-}
-
-.button:hover {
-    box-shadow: 0 4px 8px var(--button-shadow-hover),
-               0 6px 12px var(--button-shadow-hover);
-    transform: translateY(-1px);
-}
-
-.button:active {
-    transform: translateY(1px);
-    box-shadow: 0 1px 2px var(--button-shadow);
-}
-
-.button svg {
-    width: 24px;
-    height: 24px;
-    transition: transform 0.2s ease;
-}
-
-.button:disabled {
-    background: var(--dark);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-    opacity: 0.5;
-}
-
-.button:disabled svg {
-    transform: none;
-}
-
 /* Chat Actions Container */
 .chat-actions {
     position: fixed;
@@ -213,11 +148,6 @@ body {
 
 .message-input textarea:focus {
     outline: none;
-}
-
-/* Remove old button styles */
-.clear-chat-btn, .edit-prompt-btn, #send-button {
-    composes: button;
 }
 
 /* ==========================================================================

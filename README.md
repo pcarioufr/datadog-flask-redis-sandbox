@@ -10,10 +10,10 @@ A webapp chat interface for Ollama LLM, whose primary intent is to Dogfood Datad
 
 1. install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-2. Install [Ollama](https://ollama.ai/download), and download a model of your choice (suggested: [`mistral`](https://ollama.com/library/mistral)). Update the [`.env/ollama.env`](.env/ollame.env) file:
+2. Install [Ollama](https://ollama.ai/download), and download at least one model of your choice (suggested: [`mistral`](https://ollama.com/library/mistral)).
 
-    - Update `OLLAMA_MODEL` to match one of your downloaded Ollama model (run `ollama ps` to see which models are running).
-    - You may use default values for the inference parameters, and/or update later.
+    - Make sure the models you want to use are running (run `ollama ps` to see which models are running) on your Ollama instance.
+    - You may use default values for the inference parameters [`.env/ollama.env`](.env/ollama.env), and update later if needed.
 
 3. Create a [Datadog Org](https://app.datadoghq.com/signup), and update the [`.env/datadog.env`](.env/datadog.env) file:
 
@@ -68,15 +68,15 @@ Your cookie expires when you close your browser.
 
 ## API Usage
 
-The application provides a programmatic API endpoint for direct chat interactions. The system prompt is optional:
+The application provides a programmatic API endpoint for direct chat interactions. No authentication, no streaming, no persistence. The system prompt is optional:
 
 ```bash
-
-curl -X POST http://localhost:8000/api/chat \
+curl -X POST http://localhost:5000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "prompt": "What is your favorite color?",
-    "system_prompt": "You must respond to all questions with text in CAPITAL LETTERS only."
+    "prompt": "What is the capital of France?",
+    "system_prompt": "You are a helpful assistant.",
+    "model": "mistral"
   }'
 ```
 

@@ -5,7 +5,6 @@ import logging
 from app.logs import log
 from ddtrace import tracer
 
-log = logging.getLogger(__name__)
 
 class LLMService:
     """Service for interacting with the LLM."""
@@ -14,13 +13,17 @@ class LLMService:
 
     @staticmethod
     @tracer.wrap(service="ollama", name="generate_response_stream")
-    def generate_response_stream(messages, system_prompt):
+    def generate_response_stream(messages, system_prompt, model):
         """Generate a streaming response from the LLM."""
+        
+        # Use provided model or fall back to default
+
+        log.info(f"Making Ollama API call with model: {model}, using system prompt: {system_prompt}")
         
         # Prepare the request for Ollama with system prompt
         ollama_request = {
-            "model": app.config["OLLAMA_MODEL"],
-            "messages": ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages,
+            "model": model,
+            "messages": ([{"role": "system", "content": system_prompt}]) + messages,
             "stream": True,
             "options": {
                 "temperature": app.config["OLLAMA_TEMPERATURE"],
@@ -57,18 +60,22 @@ class LLMService:
 
     @staticmethod
     @tracer.wrap(service="ollama", name="generate_response_sync")
-    def generate_response_sync(messages):
+    def generate_response_sync(messages, model):
         """Get a synchronous (non-streaming) response from Ollama.
         
         Args:
             messages (list): List of message objects with role and content
+            model (str, optional): Model to use. Defaults to config value.
         
         Returns:
             str: The model's response text
         """
         try:
+            
+            log.info(f"Making Ollama API call with model: {model}, using system prompt: {messages[0]['content']}")
+
             response = requests.post(LLMService.OLLAMA_URL, json={
-                "model": app.config["OLLAMA_MODEL"],
+                "model": model,
                 "messages": messages,
                 "stream": False
             })

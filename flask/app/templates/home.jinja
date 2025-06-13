@@ -128,13 +128,20 @@
                 <h2>Edit System Prompt</h2>
             </div>
             <div class="modal-body">
-                <textarea id="prompt-editor" rows="10" placeholder="Enter system prompt..."></textarea>
+                <div class="form-group">
+                    <label for="model-select">Choose a model:</label>
+                    <select id="model-select" class="select-input"></select>
+                </div>
+                <div class="form-group">
+                    <label for="prompt-editor">System Prompt:</label>
+                    <textarea id="prompt-editor" rows="10" placeholder="Enter system prompt..."></textarea>
+                </div>
             </div>
             <div class="modal-footer">
-                <button id="reload-prompt" class="button dark" title="Reload Default Prompt"></button>
+                <button id="reload-prompt" class="button cancel" title="Reload Default Prompt"></button>
                 <div class="right-buttons">
-                    <button id="save-prompt" class="button beige" title="Save Changes"></button>
-                    <button id="cancel-prompt" class="button dark" title="Cancel"></button>
+                    <button id="save-prompt" class="button save" title="Save Changes"></button>
+                    <button id="cancel-prompt" class="button cancel" title="Cancel"></button>
                 </div>
             </div>
         </div>

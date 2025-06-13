@@ -30,7 +30,6 @@
   - `DD_CLIENT_TOKEN`: RUM client token
   - `NOTIF_EMAIL`: Email address to send Datadog notifications to
   - `DD_APPLICATION_ID`: RUM application ID
-  - `OLLAMA_MODEL`: OLLAMA model to use for chat
   - `DD_API_KEY`: Datadog API key [sensitive]
   - `DD_APP_KEY`: Datadog application key [sensitive]
   - `DD_CLIENT_TOKEN`: Datadog client token [sensitive]
