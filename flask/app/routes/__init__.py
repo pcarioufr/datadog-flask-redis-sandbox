@@ -5,8 +5,7 @@ from app.logs import log
 # Import all route modules
 from . import auth
 from . import chat
-from . import prompt
-from . import model
+from . import config
 
 @app.route("/")
 def home():

@@ -45,7 +45,6 @@ services:
       - DD_TRACE_AGENT_PORT=8126
       - FLASK_SECRET=somesupersecret
       - REDIS_HOST=redis
-
       - OLLAMA_HOST=http://host.docker.internal:11434
     labels:
       com.datadoghq.ad.logs: '[{"source": "python", "service": "flask", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "\\[?\\d{4}-\\d{2}-\\d{2}"}]}]'

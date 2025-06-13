@@ -4,8 +4,12 @@ class ChatService {
         return response.json();
     }
 
-    static async loadPrompt() {
-        const response = await fetch('/ui/prompt');
+    static async loadConfig() {
+        const response = await fetch('/ui/config');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to load configuration');
+        }
         return response.json();
     }
 
@@ -14,13 +18,16 @@ class ChatService {
         return response.json();
     }
 
-    static async savePrompt(prompt) {
-        const response = await fetch('/ui/prompt', {
+    static async saveConfig(config) {
+        const response = await fetch('/ui/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify(config)
         });
-        if (!response.ok) throw new Error('Failed to save prompt');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save configuration');
+        }
         return response.json();
     }
 
@@ -51,25 +58,8 @@ class ChatService {
         });
     }
 
-    static async saveModel(model) {
-        const response = await fetch('/ui/model', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ model })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to save model');
-        }
-        
-        return response.json();
-    }
-
     static async getModel() {
-        const response = await fetch('/ui/model');
+        const response = await fetch('/ui/config');
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to get model');

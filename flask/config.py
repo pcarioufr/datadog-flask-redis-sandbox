@@ -9,7 +9,6 @@ class Config:
     REDIS_HOST = os.environ.get("REDIS_HOST")
 
     # OLLAMA ###############
-    OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "mistral")  # default to mistral if not set
     OLLAMA_TEMPERATURE = float(os.environ.get("OLLAMA_TEMPERATURE", "0.8"))  # default to 0.8
     OLLAMA_TOP_P = float(os.environ.get("OLLAMA_TOP_P", "0.9"))  # default to 0.9
     OLLAMA_NUM_PREDICT = int(os.environ.get("OLLAMA_NUM_PREDICT", 512))  # default to 512

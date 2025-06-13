@@ -127,9 +127,9 @@
     height: 24px;
     display: block;
     margin: auto;
-    color: #fff;
-    fill: #fff;
-    stroke: #fff;
+    color: var(--beige);
+    fill: var(--beige);
+
 }
 
 .button:disabled {
@@ -244,21 +244,36 @@
     background: color-mix(in srgb, var(--beige) 85%, white);
 }
 
+.help-info .button svg {
+    color: var(--dark);
+    fill: var(--dark);
+
+}
+
 .select-input {
     width: 100%;
     padding: var(--spacing-md);
     border: 1px solid var(--beige);
-    border-radius: var(--border-radius-sm);
-    background-color: var(--ddark);
+    border-radius: var(--border-radius-md);
+    background: var(--ddark);
     color: var(--beige);
+    font-family: var(--font-primary);
     font-size: 16px;
-    margin-top: var(--spacing-xs);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6D5AC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right var(--spacing-md) center;
+    background-size: 16px;
+    padding-right: calc(var(--spacing-md) * 2 + 16px);
 }
 
 .select-input:focus {
     outline: none;
     border-color: var(--purple);
-    box-shadow: 0 0 0 2px rgba(99, 26, 130, 0.2);
+    box-shadow: 0 0 0 2px var(--purple);
 }
 
 /* Model selection button */
@@ -268,10 +283,16 @@
 
 /* Modal footer buttons */
 .modal-footer .button {
-    width: auto;
+    width: 40px;
     height: 40px;
-    border-radius: var(--border-radius-sm);
-    padding: 0 var(--spacing-lg);
+    min-width: unset;
+    border-radius: 50%;
+    padding: 0;
+    font-size: unset;
+    font-weight: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Model selector modal matches prompt modal */
@@ -346,47 +367,69 @@
 
 /* Unified modal action button styles */
 .button.save {
-    background: #fff;
-    color: #111;
+    background: var(--dgreen);
+    color: var(--beige);
     border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 4px var(--button-shadow), 0 4px 8px var(--button-shadow);
-    transition: all 0.2s;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px var(--button-shadow),
+               0 4px 8px var(--button-shadow);
+    transform: translateY(0);
 }
-.button.save svg {
-    color: #111;
-    fill: #111;
-    stroke: #111;
-}
+
 .button.save:hover {
-    background: #f0f0f0;
+    background: var(--green);
+    box-shadow: 0 4px 8px var(--button-shadow-hover),
+               0 6px 12px var(--button-shadow-hover);
+    transform: translateY(-1px);
+}
+
+.button.save:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px var(--button-shadow);
+}
+
+.button.save svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+    margin: auto;
+    color: var(--beige);
+    fill: var(--beige);
+
 }
 
 .button.cancel {
-    background: #111;
-    color: #fff;
-    border: 1px solid #fff;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 4px var(--button-shadow), 0 4px 8px var(--button-shadow);
-    transition: all 0.2s;
+    background: var(--dark);
+    color: var(--beige);
+    border: 1px solid var(--beige);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px var(--button-shadow),
+               0 4px 8px var(--button-shadow);
+    transform: translateY(0);
 }
-.button.cancel svg {
-    color: #fff;
-    fill: #fff;
-    stroke: #fff;
-}
+
 .button.cancel:hover {
-    background: #222;
+    background: var(--ddark);
+    box-shadow: 0 4px 8px var(--button-shadow-hover),
+               0 6px 12px var(--button-shadow-hover);
+    transform: translateY(-1px);
+}
+
+.button.cancel:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px var(--button-shadow);
+}
+
+.button.cancel svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+    margin: auto;
+    color: var(--beige);
+    fill: var(--beige);
+
 }
 
 /* Remove modal-specific overrides for .modal-footer .button */

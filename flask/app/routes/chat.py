@@ -61,7 +61,7 @@ def chat():
         
         # Initialize chat service
         chat_service = ChatService(app.redis_client, user)
-
+        
         if flask.request.method == 'GET':
             # Load history (if any) and return chat status
             exists = chat_service.load_history()
@@ -69,7 +69,7 @@ def chat():
                 "exists": exists,
                 "history": chat_service.history
             }), 200
-
+            
         if flask.request.method == 'DELETE':
             # Delete history and return success
             chat_service.clear_history()
@@ -86,7 +86,7 @@ def chat():
             content_parts = []  # Use a list instead of string
             
             # Capture model name while we have app context
-            model_name = app.config["OLLAMA_MODEL"]
+            model_name = chat_service.get_config()['model']
             
             def generate():
                 try:
@@ -143,7 +143,8 @@ def api_chat():
     Request body:
     {
         "prompt": "The user message to respond to",
-        "system_prompt": "(optional) System prompt to control model behavior"
+        "system_prompt": "(optional) System prompt to control model behavior",
+        "model": "The model to use (e.g. 'mistral', 'llama2', etc.)"
     }
     """
     try:
@@ -151,6 +152,11 @@ def api_chat():
         if not request_data or 'prompt' not in request_data:
             return flask.jsonify({
                 "error": "Missing prompt in request"
+            }), 400
+            
+        if not request_data or 'model' not in request_data:
+            return flask.jsonify({
+                "error": "Missing model in request"
             }), 400
 
         # Prepare messages for LLM
@@ -160,11 +166,10 @@ def api_chat():
         messages.append({"role": "user", "content": request_data["prompt"]})
 
         # Get direct response from LLM service
-        response = LLMService.generate_response_sync(messages)
+        response = LLMService.generate_response_sync(messages, request_data["model"])
         
-        # Annotate the complete conversation for LLM observabilityAdd commentMore actions
-        with LLMObs.llm(model_name="mistral", model_provider="ollama") as span:
-
+        # Annotate the complete conversation for LLM observability
+        with LLMObs.llm(model_name=request_data["model"], model_provider="ollama") as span:
             LLMObs.annotate(
                 span=span,
                 input_data=messages,  # All messages before the response

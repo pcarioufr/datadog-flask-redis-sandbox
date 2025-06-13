@@ -13,10 +13,8 @@ class ChatService:
         self.redis_client = redis_client
         self.user = user
         self.history_key = f"chat_history:{user.user_id}"
-        self._system_prompt = None
-        self.prompt_key = f"chat_prompt:{user.user_id}"
-        self.model_key = f"chat_model:{user.user_id}"
-        self._model = None
+        self.config_key = f"chat_config:{user.user_id}"
+        self._config = None
         self.history = []
         
         # Always load history on initialization
@@ -28,33 +26,56 @@ class ChatService:
         """Load chat history from storage and return if it exists."""
         history = self.redis_client.get(self.history_key)
         self.history = json.loads(history) if history else []
-        log.info(f"Loaded {len(self.history)} messages for user {self.user.user_id}")
         return bool(self.history)
         
     @tracer.wrap(name="chat.save_history")
     def save_history(self):
         """Save chat history to storage."""
         self.redis_client.set(self.history_key, json.dumps(self.history))
-        log.info(f"Saved {len(self.history)} messages for user {self.user.user_id}")
         
     @tracer.wrap(name="chat.clear_history")
     def clear_history(self):
-        """Clear chat history but preserve system prompt. Prepend system prompt as a system message if it exists."""
+        """Clear chat history."""
         # Clear history only
         self.redis_client.delete(self.history_key)
         self.history = []
+        log.info(f"Cleared history for user {self.user.user_id}")
 
-        # Do NOT clear system prompt
-        # self.redis_client.delete(self.prompt_key)
-        # self._system_prompt = None
-
-        # Prepend system prompt as a system message if it exists
-        prompt = self.get_prompt()
-        if prompt and prompt.strip():
-            self.history.append({"role": "system", "content": prompt.strip()})
-            self.save_history()
-
-        log.info(f"Cleared history and prepended system prompt for user {self.user.user_id}")
+    @tracer.wrap(name="chat.get_config")
+    def get_config(self):
+        """Get the current configuration (model and prompt)."""
+        if self._config is None:
+            # Try to get from storage
+            config = self.redis_client.hgetall(self.config_key)
+            if config:
+                log.info(f"Loaded config from Redis for user {self.user.user_id}: model={config.get('model', '')}, prompt={config.get('prompt', '')[:50]}...")
+                self._config = {
+                    'model': config.get('model', ''),
+                    'prompt': config.get('prompt', '')
+                }
+            else:
+                log.error(f"No config set for user {self.user.user_id}")
+                raise ValueError(f"No configuration set for user {self.user.user_id}. Please set model and prompt first.")
+        return self._config
+        
+    @tracer.wrap(name="chat.set_config")
+    def set_config(self, model=None, prompt=None):
+        """Set new configuration values. Only updates provided values."""
+        if self._config is None:
+            self._config = {'model': '', 'prompt': ''}
+            
+        if model is not None:
+            self._config['model'] = model.strip()
+        if prompt is not None:
+            self._config['prompt'] = prompt.strip()
+            
+        # Update Redis
+        self.redis_client.hset(self.config_key, mapping={
+            'model': self._config['model'],
+            'prompt': self._config['prompt']
+        })
+        log.info(f"Updated config for user {self.user.user_id}")
+        return self._config
         
     @tracer.wrap(name="chat.add_message")
     def add_message(self, content, role):
@@ -63,50 +84,6 @@ class ChatService:
         self.save_history()
         log.info(f"Added {role} message for user {self.user.user_id}, total messages: {len(self.history)}")
         
-    @tracer.wrap(name="chat.get_prompt")
-    def get_prompt(self):
-        """Get the current system prompt."""
-        if self._system_prompt is None:
-            # Only try to get from storage, never load default
-            prompt = self.redis_client.get(self.prompt_key)
-            if prompt:
-                log.info(f"Loaded system prompt from Redis for user {self.user.user_id}")
-                self._system_prompt = prompt
-            else:
-                log.info(f"No system prompt set for user {self.user.user_id}")
-                self._system_prompt = ""
-        return self._system_prompt
-        
-    @tracer.wrap(name="chat.set_prompt")
-    def set_prompt(self, new_prompt):
-        """Set a new system prompt."""
-        self._system_prompt = new_prompt.strip()
-        self.redis_client.set(self.prompt_key, self._system_prompt)
-        log.info(f"Updated system prompt for user {self.user.user_id}")
-        return self._system_prompt
-        
-    @tracer.wrap(name="chat.get_model")
-    def get_model(self):
-        """Get the current model."""
-        if self._model is None:
-            # Try to get from storage
-            model = self.redis_client.get(self.model_key)
-            if model:
-                log.info(f"Loaded model from Redis for user {self.user.user_id}")
-                self._model = model
-            else:
-                log.info(f"No model set for user {self.user.user_id}, using default")
-                self._model = app.config["OLLAMA_MODEL"]
-        return self._model
-        
-    @tracer.wrap(name="chat.set_model")
-    def set_model(self, new_model):
-        """Set a new model."""
-        self._model = new_model.strip()
-        self.redis_client.set(self.model_key, self._model)
-        log.info(f"Updated model to {self._model} for user {self.user.user_id}")
-        return self._model
-        
     @tracer.wrap(name="chat.process_message")
     def process_message(self, message_content):
         """Process a new message and return the response stream."""
@@ -114,25 +91,22 @@ class ChatService:
         self.add_message(message_content, "user")
         
         # Get streaming response from LLM using current model
-        return LLMService.generate_response_stream(self.history, self.get_prompt(), self.get_model())
+        return LLMService.generate_response_stream(self.history, self.get_config()['prompt'], self.get_config()['model'])
         
     @tracer.wrap(name="chat.get_welcome_message")
     def get_welcome_message(self):
         """Get a streaming welcome message."""
         return LLMService.generate_response_stream(
             [{"role": "user", "content": "Please provide a brief, welcoming message."}],
-            self.get_prompt(),
-            self.get_model()
+            self.get_config()['prompt'],
+            self.get_config()['model']
         )
 
     @tracer.wrap(name="chat.initialize_chat")
     def initialize_chat_with_message(self, welcome_message):
-        """Initialize chat with a provided welcome message, prepending system prompt if it exists."""
+        """Initialize chat with a provided welcome message."""
         log.info(f"Initializing chat for user {self.user.user_id}")
         self.history = []
-        prompt = self.get_prompt()
-        if prompt and prompt.strip():
-            self.history.append({"role": "system", "content": prompt.strip()})
         self.history.append({"role": "assistant", "content": welcome_message})
         self.save_history()
         return self.history 

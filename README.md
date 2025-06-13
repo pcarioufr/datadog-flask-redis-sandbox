@@ -12,10 +12,8 @@ A webapp chat interface for Ollama LLM, whose primary intent is to Dogfood Datad
 
 2. Install [Ollama](https://ollama.ai/download), and download at least one model of your choice (suggested: [`mistral`](https://ollama.com/library/mistral)).
 
-    - Make sure the model you want to use is running (run `ollama ps` to see which models are running).
-    - The application will dynamically detect all available models from your Ollama instance, and you can select your preferred model from the UI at any time.
-    - The `OLLAMA_MODEL` environment variable sets the **default model** used if a user has not selected a model yet.
-    - You may use default values for the inference parameters, and/or update later.
+    - Make sure the models you want to use are running (run `ollama ps` to see which models are running) on your Ollama instance.
+    - You may use default values for the inference parameters [`.env/ollama.env`](.env/ollama.env), and update later if needed.
 
 3. Create a [Datadog Org](https://app.datadoghq.com/signup), and update the [`.env/datadog.env`](.env/datadog.env) file:
 
@@ -68,26 +66,17 @@ Connect to `http://localhost:8000`. You'll be logged in as a random user `abcd12
 
 Your cookie expires when you close your browser.
 
-### Model Selection
-- You can select any available Ollama model at any time using the model selector in the UI (bottom left, next to the system prompt button).
-- When you change models, your chat history is cleared, but your system prompt is preserved and automatically prepended as a system message for the new model.
-- If you have not selected a model, the application will use the **default model** specified by the `OLLAMA_MODEL` environment variable.
-
-### System Prompt
-- You can edit the system prompt at any time using the prompt editor in the UI.
-- The system prompt is always prepended as a system message after a chat clear or model change, ensuring consistent behavior for the LLM.
-
 ## API Usage
 
-The application provides a programmatic API endpoint for direct chat interactions. The system prompt is optional:
+The application provides a programmatic API endpoint for direct chat interactions. No authentication, no streaming, no persistence. The system prompt is optional:
 
 ```bash
-
-curl -X POST http://localhost:8000/api/chat \
+curl -X POST http://localhost:5000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "prompt": "What is your favorite color?",
-    "system_prompt": "You must respond to all questions with text in CAPITAL LETTERS only."
+    "prompt": "What is the capital of France?",
+    "system_prompt": "You are a helpful assistant.",
+    "model": "mistral"
   }'
 ```
 
