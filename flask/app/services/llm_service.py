@@ -14,12 +14,15 @@ class LLMService:
 
     @staticmethod
     @tracer.wrap(service="ollama", name="generate_response_stream")
-    def generate_response_stream(messages, system_prompt):
+    def generate_response_stream(messages, system_prompt, model=None):
         """Generate a streaming response from the LLM."""
+        
+        # Use provided model or fall back to default
+        model = model or app.config["OLLAMA_MODEL"]
         
         # Prepare the request for Ollama with system prompt
         ollama_request = {
-            "model": app.config["OLLAMA_MODEL"],
+            "model": model,
             "messages": ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages,
             "stream": True,
             "options": {
@@ -57,18 +60,22 @@ class LLMService:
 
     @staticmethod
     @tracer.wrap(service="ollama", name="generate_response_sync")
-    def generate_response_sync(messages):
+    def generate_response_sync(messages, model=None):
         """Get a synchronous (non-streaming) response from Ollama.
         
         Args:
             messages (list): List of message objects with role and content
+            model (str, optional): Model to use. Defaults to config value.
         
         Returns:
             str: The model's response text
         """
         try:
+            # Use provided model or fall back to default
+            model = model or app.config["OLLAMA_MODEL"]
+            
             response = requests.post(LLMService.OLLAMA_URL, json={
-                "model": app.config["OLLAMA_MODEL"],
+                "model": model,
                 "messages": messages,
                 "stream": False
             })

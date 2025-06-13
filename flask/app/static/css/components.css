@@ -125,7 +125,11 @@
 .button svg {
     width: 24px;
     height: 24px;
-    transition: transform 0.2s ease;
+    display: block;
+    margin: auto;
+    color: #fff;
+    fill: #fff;
+    stroke: #fff;
 }
 
 .button:disabled {
@@ -238,4 +242,161 @@
 
 .help-info .button:hover {
     background: color-mix(in srgb, var(--beige) 85%, white);
+}
+
+.select-input {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--beige);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--ddark);
+    color: var(--beige);
+    font-size: 16px;
+    margin-top: var(--spacing-xs);
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: var(--purple);
+    box-shadow: 0 0 0 2px rgba(99, 26, 130, 0.2);
+}
+
+/* Model selection button */
+#model-select-button.button {
+    /* No custom background, inherit from .chat-actions .button */
+}
+
+/* Modal footer buttons */
+.modal-footer .button {
+    width: auto;
+    height: 40px;
+    border-radius: var(--border-radius-sm);
+    padding: 0 var(--spacing-lg);
+}
+
+/* Model selector modal matches prompt modal */
+#model-select-modal .modal-content {
+    background: var(--dark);
+    border-radius: var(--border-radius-md);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+#model-select-modal .modal-header {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#model-select-modal .modal-header h2 {
+    color: var(--beige);
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: var(--fw-medium);
+}
+
+#model-select-modal .modal-body {
+    padding: var(--spacing-md);
+    overflow-y: auto;
+}
+
+#model-select-modal .form-group label {
+    color: var(--beige);
+    font-size: 14px;
+    font-weight: var(--fw-medium);
+}
+
+#model-select-modal .select-input {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--beige);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--ddark);
+    color: var(--beige);
+    font-size: 16px;
+    margin-top: var(--spacing-xs);
+}
+
+#model-select-modal .select-input:focus {
+    outline: none;
+    border-color: var(--purple);
+    box-shadow: 0 0 0 2px rgba(99, 26, 130, 0.2);
+}
+
+#model-select-modal .modal-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+}
+
+#model-select-modal .right-buttons {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+/* Unified modal action button styles */
+.button.save {
+    background: #fff;
+    color: #111;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px var(--button-shadow), 0 4px 8px var(--button-shadow);
+    transition: all 0.2s;
+}
+.button.save svg {
+    color: #111;
+    fill: #111;
+    stroke: #111;
+}
+.button.save:hover {
+    background: #f0f0f0;
+}
+
+.button.cancel {
+    background: #111;
+    color: #fff;
+    border: 1px solid #fff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px var(--button-shadow), 0 4px 8px var(--button-shadow);
+    transition: all 0.2s;
+}
+.button.cancel svg {
+    color: #fff;
+    fill: #fff;
+    stroke: #fff;
+}
+.button.cancel:hover {
+    background: #222;
+}
+
+/* Remove modal-specific overrides for .modal-footer .button */
+#model-select-modal .modal-footer .button,
+#prompt-modal .modal-footer .button {
+    min-width: unset;
+    border-radius: 50%;
+    padding: 0;
+    font-size: unset;
+    font-weight: unset;
+    width: 40px;
+    height: 40px;
 } 

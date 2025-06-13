@@ -6,10 +6,14 @@ import ChatService from './services/ChatService.js';
 class ChatManager {
     constructor() {
         this.ui = new ChatUI();
-        this.setupEventListeners();
         this.currentPrompt = '';
         this.savePromptResolve = null;  // For handling initial prompt save
         this.isProcessing = false;
+        this.promptEditor = document.getElementById("prompt-editor");
+        this.modelSelect = document.getElementById("model-select");
+        
+        // Initialize event listeners
+        this.setupEventListeners();
     }
 
     setupEventListeners() {
@@ -57,6 +61,9 @@ class ChatManager {
                 if (this.userModal.classList.contains('show')) {
                     this.hideUserModal();
                 }
+                if (this.modelModal && this.modelModal.style.display === 'block') {
+                    this.hideModelModal();
+                }
             }
         });
 
@@ -67,6 +74,26 @@ class ChatManager {
                 this.savePromptResolve = null;
             }
         });
+
+        // Model selection
+        this.modelModal = document.getElementById("model-select-modal");
+        document.getElementById("model-select-button").addEventListener("click", () => this.showModelModal());
+        document.getElementById("close-model-select").addEventListener("click", () => this.hideModelModal());
+        document.getElementById("save-model").addEventListener("click", () => this.saveModel());
+
+        // Load current model on startup
+        this.loadCurrentModel();
+    }
+
+    async loadCurrentModel() {
+        try {
+            const response = await ChatService.getModel();
+            if (response.status === 'success' && response.model) {
+                this.modelSelect.value = response.model;
+            }
+        } catch (error) {
+            console.error('Error loading current model:', error);
+        }
     }
 
     async showPromptModal(hideCloseButtons = false, isNewChat = false) {
@@ -193,7 +220,7 @@ class ChatManager {
 
     // Method to wait for prompt save
     waitForPromptSave() {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             this.savePromptResolve = resolve;
         });
     }
@@ -208,6 +235,68 @@ class ChatManager {
             }
         } catch (error) {
             console.error('Error loading default prompt:', error);
+        }
+    }
+
+    async showModelModal() {
+        // Fetch available models and update the dropdown
+        try {
+            const response = await ChatService.getAvailableModels();
+            if (response.status === 'success' && Array.isArray(response.models)) {
+                // Always clear current options
+                this.modelSelect.innerHTML = '';
+                response.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    this.modelSelect.appendChild(option);
+                });
+                // Set the select to the current model
+                const currentModelResp = await ChatService.getModel();
+                if (currentModelResp.status === 'success' && currentModelResp.model) {
+                    this.modelSelect.value = currentModelResp.model;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading available models:', error);
+            // fallback: keep current options
+        }
+        this.modelModal.style.display = "block";
+        setTimeout(() => this.modelModal.style.opacity = "1", 10);
+    }
+
+    hideModelModal() {
+        this.modelModal.style.opacity = "0";
+        setTimeout(() => this.modelModal.style.display = "none", 300);
+    }
+
+    async saveModel() {
+        const selectedModel = this.modelSelect.value;
+        try {
+            await ChatService.saveModel(selectedModel);
+            this.hideModelModal();
+            // Clear chat history since we're switching models, but do NOT clear the system prompt
+            await ChatService.clearChat();
+            this.ui.clearMessages();
+            this.ui.addMessage("Model changed to " + selectedModel + ". Chat history has been cleared.", false);
+            // Use the existing currentPrompt (do not reload or clear)
+            if (this.currentPrompt && this.currentPrompt.trim()) {
+                await this.sendSystemPromptToModel(this.currentPrompt);
+            }
+            await this.getWelcomeMessage();
+        } catch (error) {
+            console.error('Error saving model:', error);
+            this.ui.addMessage('Failed to change model. Please try again.', false);
+        }
+    }
+
+    // Helper to submit the system prompt as a message to the new model
+    async sendSystemPromptToModel(prompt) {
+        try {
+            // Optionally, you could use a dedicated API if available, otherwise use sendMessage
+            await ChatService.sendMessage(prompt);
+        } catch (error) {
+            console.error('Error submitting system prompt to new model:', error);
         }
     }
 }

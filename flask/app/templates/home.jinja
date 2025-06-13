@@ -112,6 +112,25 @@
         </div>
     </div>
     
+    <!-- Model Selection Modal -->
+    <div id="model-select-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="margin: 0 auto; text-align: center;">Select Model</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="model-select">Choose a model:</label>
+                    <select id="model-select" class="select-input"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-model" class="button save" title="Save Changes"></button>
+                <button id="close-model-select" class="button cancel" title="Cancel"></button>
+            </div>
+        </div>
+    </div>
+    
     <div class="chat-thread">
         <div class="messages" id="chat-messages"></div>
     </div>
@@ -119,6 +138,7 @@
     <div class="chat-actions">
         <button id="clear-chat-button" class="button" title="Clear Chat History"></button>
         <button id="edit-prompt-button" class="button" title="Edit AI Prompt"></button>
+        <button id="model-select-button" class="button" title="Select Model"></button>
     </div>
 
     <!-- Prompt Editor Modal -->
@@ -131,10 +151,10 @@
                 <textarea id="prompt-editor" rows="10" placeholder="Enter system prompt..."></textarea>
             </div>
             <div class="modal-footer">
-                <button id="reload-prompt" class="button dark" title="Reload Default Prompt"></button>
+                <button id="reload-prompt" class="button cancel" title="Reload Default Prompt"></button>
                 <div class="right-buttons">
-                    <button id="save-prompt" class="button beige" title="Save Changes"></button>
-                    <button id="cancel-prompt" class="button dark" title="Cancel"></button>
+                    <button id="save-prompt" class="button save" title="Save Changes"></button>
+                    <button id="cancel-prompt" class="button cancel" title="Cancel"></button>
                 </div>
             </div>
         </div>

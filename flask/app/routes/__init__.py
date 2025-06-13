@@ -6,6 +6,7 @@ from app.logs import log
 from . import auth
 from . import chat
 from . import prompt
+from . import model
 
 @app.route("/")
 def home():

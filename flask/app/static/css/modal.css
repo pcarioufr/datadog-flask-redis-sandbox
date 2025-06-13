@@ -138,4 +138,23 @@
 
 .button.dark:hover {
     background: var(--ddark);
+}
+
+/* Model selection modal specific styles */
+#model-select-modal .modal-footer .button {
+    width: 40px;
+    height: 40px;
+    min-width: unset;
+    border-radius: 50%;
+    padding: 0;
+    font-size: unset;
+    font-weight: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Remove custom styles for #save-model and #close-model-select to unify button appearance */
+#save-model, #close-model-select {
+    
 } 

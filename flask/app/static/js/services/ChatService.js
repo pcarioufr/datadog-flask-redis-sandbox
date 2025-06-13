@@ -25,7 +25,9 @@ class ChatService {
     }
 
     static async clearChat() {
-        const response = await fetch('/ui/chat', { method: 'DELETE' });
+        const response = await fetch('/ui/chat', {
+            method: 'DELETE'
+        });
         if (!response.ok) throw new Error('Failed to clear chat');
         return response.json();
     }
@@ -47,6 +49,41 @@ class ChatService {
             },
             body: JSON.stringify({ prompt: message })
         });
+    }
+
+    static async saveModel(model) {
+        const response = await fetch('/ui/model', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ model })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save model');
+        }
+        
+        return response.json();
+    }
+
+    static async getModel() {
+        const response = await fetch('/ui/model');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to get model');
+        }
+        return response.json();
+    }
+
+    static async getAvailableModels() {
+        const response = await fetch('/ui/models');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to get models');
+        }
+        return response.json();
     }
 }
 

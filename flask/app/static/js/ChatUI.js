@@ -1,4 +1,4 @@
-import { clearIcon, editIcon, sendIcon, saveIcon, cancelIcon, userIcon, recycleIcon, questionIcon } from './icons.js';
+import { clearIcon, editIcon, sendIcon, saveIcon, cancelIcon, userIcon, recycleIcon, questionIcon, modelIcon } from './icons.js';
 
 class ChatUI {
     constructor() {
@@ -15,6 +15,10 @@ class ChatUI {
         this.reloadPromptButton = document.getElementById('reload-prompt');
         this.helpButton = document.getElementById('help-button');
         this.closeHelpButton = document.getElementById('close-help');
+        this.modelSelectButton = document.getElementById('model-select-button');
+        this.saveModelButton = document.getElementById('save-model');
+        this.cancelModelButton = document.getElementById('close-model-select');
+        this.modelModal = document.getElementById('model-select-modal');
 
         // Set button icons
         this.sendButton.innerHTML = sendIcon;
@@ -27,6 +31,9 @@ class ChatUI {
         this.reloadPromptButton.innerHTML = recycleIcon;
         this.helpButton.innerHTML = questionIcon;
         this.closeHelpButton.innerHTML = cancelIcon;
+        this.modelSelectButton.innerHTML = modelIcon;
+        this.saveModelButton.innerHTML = saveIcon;
+        this.cancelModelButton.innerHTML = cancelIcon;
 
         // Setup help modal events
         this.helpModal = document.getElementById('help-modal');
@@ -34,6 +41,14 @@ class ChatUI {
         this.closeHelpButton.addEventListener('click', () => this.hideHelpModal());
         this.helpModal.addEventListener('click', (e) => {
             if (e.target === this.helpModal) this.hideHelpModal();
+        });
+
+        // Setup model modal click-outside-to-close
+        this.modelModal.addEventListener('click', (e) => {
+            if (e.target === this.modelModal) {
+                this.modelModal.style.opacity = '0';
+                setTimeout(() => this.modelModal.style.display = 'none', 300);
+            }
         });
 
         // Setup input auto-resize

@@ -2,6 +2,7 @@ import json
 from app.logs import log
 from .llm_service import LLMService
 from ddtrace import tracer
+from flask import current_app as app
 
 class ChatService:
     """Service for handling chat operations."""
@@ -14,6 +15,8 @@ class ChatService:
         self.history_key = f"chat_history:{user.user_id}"
         self._system_prompt = None
         self.prompt_key = f"chat_prompt:{user.user_id}"
+        self.model_key = f"chat_model:{user.user_id}"
+        self._model = None
         self.history = []
         
         # Always load history on initialization
@@ -36,16 +39,22 @@ class ChatService:
         
     @tracer.wrap(name="chat.clear_history")
     def clear_history(self):
-        """Clear chat history and system prompt."""
-        # Clear history
+        """Clear chat history but preserve system prompt. Prepend system prompt as a system message if it exists."""
+        # Clear history only
         self.redis_client.delete(self.history_key)
         self.history = []
-        
-        # Clear system prompt
-        self.redis_client.delete(self.prompt_key)
-        self._system_prompt = None
-        
-        log.info(f"Cleared history and system prompt for user {self.user.user_id}")
+
+        # Do NOT clear system prompt
+        # self.redis_client.delete(self.prompt_key)
+        # self._system_prompt = None
+
+        # Prepend system prompt as a system message if it exists
+        prompt = self.get_prompt()
+        if prompt and prompt.strip():
+            self.history.append({"role": "system", "content": prompt.strip()})
+            self.save_history()
+
+        log.info(f"Cleared history and prepended system prompt for user {self.user.user_id}")
         
     @tracer.wrap(name="chat.add_message")
     def add_message(self, content, role):
@@ -76,29 +85,54 @@ class ChatService:
         log.info(f"Updated system prompt for user {self.user.user_id}")
         return self._system_prompt
         
+    @tracer.wrap(name="chat.get_model")
+    def get_model(self):
+        """Get the current model."""
+        if self._model is None:
+            # Try to get from storage
+            model = self.redis_client.get(self.model_key)
+            if model:
+                log.info(f"Loaded model from Redis for user {self.user.user_id}")
+                self._model = model
+            else:
+                log.info(f"No model set for user {self.user.user_id}, using default")
+                self._model = app.config["OLLAMA_MODEL"]
+        return self._model
+        
+    @tracer.wrap(name="chat.set_model")
+    def set_model(self, new_model):
+        """Set a new model."""
+        self._model = new_model.strip()
+        self.redis_client.set(self.model_key, self._model)
+        log.info(f"Updated model to {self._model} for user {self.user.user_id}")
+        return self._model
+        
     @tracer.wrap(name="chat.process_message")
     def process_message(self, message_content):
         """Process a new message and return the response stream."""
         # Add user's message to history
         self.add_message(message_content, "user")
         
-        # Get streaming response from LLM
-        return LLMService.generate_response_stream(self.history, self.get_prompt())
+        # Get streaming response from LLM using current model
+        return LLMService.generate_response_stream(self.history, self.get_prompt(), self.get_model())
         
     @tracer.wrap(name="chat.get_welcome_message")
     def get_welcome_message(self):
         """Get a streaming welcome message."""
         return LLMService.generate_response_stream(
             [{"role": "user", "content": "Please provide a brief, welcoming message."}],
-            self.get_prompt()
+            self.get_prompt(),
+            self.get_model()
         )
 
     @tracer.wrap(name="chat.initialize_chat")
     def initialize_chat_with_message(self, welcome_message):
-        """Initialize chat with a provided welcome message."""
+        """Initialize chat with a provided welcome message, prepending system prompt if it exists."""
         log.info(f"Initializing chat for user {self.user.user_id}")
-        self.history = [
-            {"role": "assistant", "content": welcome_message}
-        ]
+        self.history = []
+        prompt = self.get_prompt()
+        if prompt and prompt.strip():
+            self.history.append({"role": "system", "content": prompt.strip()})
+        self.history.append({"role": "assistant", "content": welcome_message})
         self.save_history()
         return self.history 
