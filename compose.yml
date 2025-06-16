@@ -46,6 +46,9 @@ services:
       - FLASK_SECRET=somesupersecret
       - REDIS_HOST=redis
       - OLLAMA_HOST=http://host.docker.internal:11434
+      # test modes
+      - TEST_OLLAMA_DOWN=false
+      - TEST_OLLAMA_NOMODEL=false
     labels:
       com.datadoghq.ad.logs: '[{"source": "python", "service": "flask", "log_processing_rules": [{"type": "multi_line", "name": "log_start_with_date", "pattern" : "\\[?\\d{4}-\\d{2}-\\d{2}"}]}]'
     expose:

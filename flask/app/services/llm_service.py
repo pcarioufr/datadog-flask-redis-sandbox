@@ -1,84 +1,155 @@
 import requests
 from flask import current_app as app
-import json
-import logging
 from app.logs import log
 from ddtrace import tracer
+import os
 
 
 class LLMService:
     """Service for interacting with the LLM."""
     
-    OLLAMA_URL = f"{app.config['OLLAMA_HOST']}/api/chat"
+    OLLAMA_HOST = os.getenv('OLLAMA_HOST')
 
-    @staticmethod
-    @tracer.wrap(service="ollama", name="generate_response_stream")
-    def generate_response_stream(messages, system_prompt, model):
-        """Generate a streaming response from the LLM."""
-        
-        # Use provided model or fall back to default
-
-        log.info(f"Making Ollama API call with model: {model}, using system prompt: {system_prompt}")
-        
-        # Prepare the request for Ollama with system prompt
-        ollama_request = {
-            "model": model,
-            "messages": ([{"role": "system", "content": system_prompt}]) + messages,
-            "stream": True,
-            "options": {
-                "temperature": app.config["OLLAMA_TEMPERATURE"],
-                "top_p": app.config["OLLAMA_TOP_P"],
-                "num_predict": int(app.config.get("OLLAMA_NUM_PREDICT")),
-                "num_ctx": int(app.config.get("OLLAMA_NUM_CTX"))
-            }
-        }
-
-        # Forward the request to Ollama    
-        return requests.post(
-            LLMService.OLLAMA_URL,
-            json=ollama_request,
-            stream=True
-        )
-        
-    @staticmethod
-    def extract_content_from_stream(response):
-        """Extract content from a streaming response."""
-        content = ""
+    @classmethod
+    @tracer.wrap(service="ollama")
+    def get_available_models(cls):
+        """Get list of available models from Ollama."""
         try:
-            for line in response.iter_lines():
-                if line:
-                    try:
-                        chunk = json.loads(line)
-                        if chunk.get("message", {}).get("content"):
-                            content += chunk["message"]["content"]
-                    except json.JSONDecodeError:
-                        continue
+            response = requests.get(f"{cls.OLLAMA_HOST}/api/tags")
+            if response.status_code != 200:
+                raise ValueError("Failed to fetch available models")
+            return [model['name'] for model in response.json().get('models', [])]
         except Exception as e:
-            log.error(f"Error extracting content from stream: {str(e)}")
+            raise ValueError(f"Failed to fetch available models: {str(e)}")
+    
+    @classmethod
+    @tracer.wrap(service="ollama")
+    def check_ollama_status(cls):
+        """Check if Ollama is running and has at least one model.
+        
+        Raises:
+            ValueError: If Ollama is not running or has no models
+        """
+        # Test error simulation
+        if app.config['TEST_OLLAMA_DOWN']:
+            log.warning("TEST MODE: Simulating Ollama being down")
+            raise ValueError("Cannot connect to Ollama. Please make sure it's running.")
             
-        return content.strip()
+        if app.config['TEST_OLLAMA_NOMODEL']:
+            log.warning("TEST MODE: Simulating no models available in Ollama")
+            raise ValueError("No models available in Ollama")
+            
+        try:
+            # First check if Ollama is running
+            response = requests.get(f"{cls.OLLAMA_HOST}/api/tags")
+            if response.status_code != 200:
+                raise ValueError("Ollama is not running")
+            
+            # Then check if there are any models
+            models = response.json().get('models', [])
+            if not models:
+                raise ValueError("No models available in Ollama")
+                
+        except requests.exceptions.ConnectionError:
+            raise ValueError("Cannot connect to Ollama. Please make sure it's running.")
+        except Exception as e:
+            raise ValueError(f"Error checking Ollama status: {str(e)}")
+    
+    def __init__(self, model: str, prompt: str = None):
+        """Initialize the LLM service and validate the model.
+        
+        Args:
+            model: Name of the Ollama model to use
+            prompt: System prompt to use for all requests. If None, no system prompt will be used.
+            
+        Raises:
+            ValueError: If Ollama is not running or has no models
+        """
+        # Check Ollama status
+        self.check_ollama_status()
+            
+        self.model = model
+        self.prompt = prompt
+        self.url = f"{self.OLLAMA_HOST}/api/chat"
 
-    @staticmethod
-    @tracer.wrap(service="ollama", name="generate_response_sync")
-    def generate_response_sync(messages, model):
+    @tracer.wrap(service="ollama")
+    def generate_response_stream(self, messages):
+        """Generate a streaming response from the LLM."""
+        try:
+            # Prepare messages with system prompt if it exists
+            if self.prompt:
+                messages = [{"role": "system", "content": self.prompt}] + messages
+
+            # Prepare the request for Ollama
+            ollama_request = {
+                "model": self.model,
+                "messages": messages,
+                "stream": True,
+                "options": {
+                    "temperature": app.config["OLLAMA_TEMPERATURE"],
+                    "top_p": app.config["OLLAMA_TOP_P"],
+                    "num_predict": int(app.config.get("OLLAMA_NUM_PREDICT")),
+                    "num_ctx": int(app.config.get("OLLAMA_NUM_CTX"))
+                }
+            }
+
+            log.info(f"Making Ollama API call with model: {self.model}, using system prompt: {self.prompt}")
+
+            # Forward the request to Ollama    
+            response = requests.post(
+                f"{self.OLLAMA_HOST}/api/chat",
+                json=ollama_request,
+                stream=True
+            )
+            if response.status_code != 200:
+                raise ValueError(f"Failed to generate response: {response.text}")
+            return response
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"Failed to generate response: {str(e)}")
+
+    @tracer.wrap(service="ollama")
+    def generate_response_sync(self, messages):
         """Get a synchronous (non-streaming) response from Ollama.
         
         Args:
             messages (list): List of message objects with role and content
-            model (str, optional): Model to use. Defaults to config value.
         
         Returns:
             str: The model's response text
         """
         try:
-            
-            log.info(f"Making Ollama API call with model: {model}, using system prompt: {messages[0]['content']}")
+            # Prepare messages with system prompt if it exists
+            if self.prompt:
+                messages = [{"role": "system", "content": self.prompt}] + messages
 
-            response = requests.post(LLMService.OLLAMA_URL, json={
-                "model": model,
+            log.info(f"Making Ollama API call with model: {self.model}, using system prompt: {self.prompt}")
+
+            # Prepare the request for Ollama
+            ollama_request = {
+                "model": self.model,
                 "messages": messages,
-                "stream": False
-            })
+                "stream": False,
+                "options": {
+                    "temperature": app.config["OLLAMA_TEMPERATURE"],
+                    "top_p": app.config["OLLAMA_TOP_P"],
+                    "num_predict": int(app.config.get("OLLAMA_NUM_PREDICT")),
+                    "num_ctx": int(app.config.get("OLLAMA_NUM_CTX"))
+                }
+            }
+
+            response = requests.post(
+                f"{self.OLLAMA_HOST}/api/chat",
+                json=ollama_request
+            )
+            
+            if response.status_code == 404:
+                # Model not found, get available models
+                try:
+                    available_models = self.get_available_models()
+                    raise ValueError(f"Model '{self.model}' not found. Available models: {', '.join(available_models)}")
+                except ValueError as e:
+                    raise ValueError(f"Model '{self.model}' not found and {str(e)}")
+            
             response.raise_for_status()
             
             data = response.json()

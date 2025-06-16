@@ -125,16 +125,18 @@
     <div id="prompt-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Edit System Prompt</h2>
+                <h2>Configuration</h2>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="model-select">Choose a model:</label>
-                    <select id="model-select" class="select-input"></select>
+                    <label>Model Selection:</label>
+                    <div id="model-radio-group" class="radio-group">
+                        <!-- Radio options will be dynamically added here -->
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="prompt-editor">System Prompt:</label>
-                    <textarea id="prompt-editor" rows="10" placeholder="Enter system prompt..."></textarea>
+                    <textarea id="prompt-editor" rows="10" placeholder="Enter your system prompt here, or leave it empty for no prompt"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -155,6 +157,40 @@
                 rows="1"
             ></textarea>
             <button id="send-button" class="button" title="Send Message"></button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <h2>Help</h2>
+            <div class="help-content">
+                <p>Welcome to LLM-2000! Here are some tips to get started:</p>
+                <ul>
+                    <li>Type your message in the input box and press Enter or click the send button</li>
+                    <li>Use Shift+Enter for new lines in your message</li>
+                    <li>Click the edit button to customize your system prompt</li>
+                    <li>Click the clear button to start a new chat</li>
+                </ul>
+            </div>
+            <button id="close-help" class="button">Close</button>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="error-modal" class="modal">
+        <div class="modal-content error">
+            <div class="modal-header">
+                <h2>Error</h2>
+            </div>
+            <div class="modal-body">
+                <p id="error-message"></p>
+            </div>
+            <div class="modal-footer">
+                <div class="right-buttons">
+                    <button id="restart-error" class="button error" title="Restart Application"></button>
+                </div>
+            </div>
         </div>
     </div>
 

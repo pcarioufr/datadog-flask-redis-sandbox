@@ -9,6 +9,8 @@
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1000;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -32,6 +34,12 @@
     box-shadow: var(--shadow-lg);
     transform: translateY(-20px);
     transition: transform 0.3s ease;
+}
+
+/* Error modal variant */
+.modal-content.error {
+    border: 2px solid var(--red);
+    width: 400px;
 }
 
 .modal.show .modal-content {
@@ -111,13 +119,16 @@
 
 .modal-footer {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
 }
 
 .modal-footer .right-buttons {
     display: flex;
     gap: var(--spacing-md);
+    margin-left: auto;
 }
 
 /* Button variants */

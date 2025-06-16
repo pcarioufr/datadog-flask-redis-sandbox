@@ -442,4 +442,85 @@
     font-weight: unset;
     width: 40px;
     height: 40px;
+}
+
+/* ==========================================================================
+   Custom Radio Button Component
+   ========================================================================== */
+.radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-md) 0;
+}
+
+.radio-option {
+    position: relative;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--dark);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    color: var(--beige);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.radio-option:hover {
+    background: color-mix(in srgb, var(--purple) 20%, var(--dark));
+}
+
+.radio-option.selected {
+    background: var(--purple);
+    border-color: var(--purple);
+    color: var(--beige);
+}
+
+.radio-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.radio-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* ==========================================================================
+   Button Styles
+   ========================================================================== */
+
+/* Button variants */
+.button.error {
+    background: var(--red);
+    color: var(--beige);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px var(--button-shadow),
+               0 4px 8px var(--button-shadow);
+    transform: translateY(0);
+}
+
+.button.error:hover {
+    background: color-mix(in srgb, var(--red) 85%, white);
+    box-shadow: 0 4px 8px var(--button-shadow-hover),
+               0 6px 12px var(--button-shadow-hover);
+    transform: translateY(-1px);
+}
+
+.button.error:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px var(--button-shadow);
+}
+
+.button.error svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+    margin: auto;
+    color: var(--beige);
+    fill: var(--beige);
 } 

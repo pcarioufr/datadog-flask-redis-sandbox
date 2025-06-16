@@ -5,46 +5,49 @@ import ChatService from './services/ChatService.js';
 
 // Main initialization flow
 async function initializeChat() {
-    const chatManager = new ChatManager();
-
-    // 1. Check if chat exists
-    const chatData = await ChatService.checkChatExists();
-
-    // 2. Load current prompt
     try {
-        const data = await ChatService.loadPrompt();
-        chatManager.currentPrompt = data.prompt || '';
-    } catch (error) {
-        console.error('Error loading prompt:', error);
-        chatManager.currentPrompt = '';
-    }
-
-    // 3. Initialize based on chat existence
-    if (!chatData.exists) {
-        // 3a. For new chats, show prompt modal and wait for user input
-        chatManager.showPromptModal(true, true);  // hideCloseButtons=true, isNewChat=true
-        await chatManager.waitForPromptSave();
-
-        // Get welcome message
-        chatManager.setProcessingState(true);
-        try {
-            await chatManager.getWelcomeMessage();
-        } catch (error) {
-            chatManager.ui.addMessage('Failed to get welcome message. Please refresh the page.', false);
-        } finally {
-            chatManager.setProcessingState(false);
+        // First, check Ollama status
+        const pingResponse = await fetch('/ui/ping');
+        const pingData = await pingResponse.json();
+        
+        if (pingResponse.status !== 200) {
+            throw new Error(pingData.error || 'Failed to connect to Ollama');
         }
-    } else {
-        // 3b. For existing chats, just load history
-        chatData.history.forEach(msg => {
-            chatManager.ui.addMessage(msg.content, msg.role === 'user');
-        });
-        chatManager.ui.setInputState(true);
+
+        // Then check if chat exists
+        const chatExists = await ChatService.checkChatExists();
+        
+        // Initialize chat manager
+        const chatManager = new ChatManager();
+
+        if (!chatExists) {
+            // For new chats, show prompt modal and wait for user input
+            chatManager.showPromptModal(true, true);  // hideCloseButtons=true, isNewChat=true
+            await chatManager.waitForPromptSave();
+
+            // Get welcome message
+            chatManager.setProcessingState(true);
+            try {
+                await chatManager.getWelcomeMessage();
+            } catch (error) {
+                chatManager.ui.addMessage('Failed to get welcome message. Please refresh the page.', false);
+            } finally {
+                chatManager.setProcessingState(false);
+            }
+        } else {
+            // For existing chats, load history
+            const chatData = await fetch('/ui/chat').then(r => r.json());
+            chatData.history.forEach(msg => {
+                chatManager.ui.addMessage(msg.content, msg.role === 'user');
+            });
+            chatManager.ui.setInputState(true);
+        }
+    } catch (error) {
+        console.error('Error initializing chat:', error);
+        const chatManager = new ChatManager();
+        chatManager.ui.showErrorModal(error.message || 'Failed to initialize chat. Please make sure Ollama is running and try again.');
     }
 }
 
-// Start the chat initialization
-initializeChat().catch(error => {
-    console.error('Failed to initialize chat:', error);
-    document.body.innerHTML = '<div class="error-message">Failed to initialize chat. Please refresh the page.</div>';
-}); 
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializeChat); 

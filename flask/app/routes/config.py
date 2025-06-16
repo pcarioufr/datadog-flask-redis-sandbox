@@ -1,12 +1,10 @@
 import flask
 from flask import current_app as app
 from app.logs import log
-from app.services.chat_service import ChatService
+from app.services.chat_service import StatefulChatService
 from .auth import auth
-from flask import jsonify, request
-from ddtrace import tracer
-from app.logs import log
-import requests
+
+from app.services.llm_service import LLMService
 
 
 @app.route("/ui/config", methods=['GET', 'POST'])
@@ -16,34 +14,39 @@ def config():
         # Authenticate user
         user = auth()
         
-        # Initialize chat service
-        chat_service = ChatService(app.redis_client, user)
-
         if flask.request.method == 'GET':
-            try:
-                # Try to get current configuration
-                config = chat_service.get_config()
-                return flask.jsonify({
-                    "status": "success",
-                    "model": config['model'],
-                    "prompt": config['prompt']
-                }), 200
-            except ValueError as e:
-                # If configuration is missing, return empty config
+            # For GET requests, check if config exists
+            if not StatefulChatService.exists(user.user_id):
                 return flask.jsonify({
                     "status": "success",
                     "model": None,
                     "prompt": None
                 }), 200
+                
+            # Config exists, load and return it
+            chat_service = StatefulChatService(user)
+            return flask.jsonify({
+                "status": "success",
+                "model": chat_service.config['model'],
+                "prompt": chat_service.config['prompt']
+            }), 200
             
-        # Handle POST request
+        # For POST requests
         request_data = flask.request.get_json()
+        if not request_data:
+            return flask.jsonify({"error": "No data provided"}), 400
+            
+        model = request_data.get('model')
+        prompt = request_data.get('prompt')
         
-        # Update configuration
-        config = chat_service.set_config(
-            model=request_data.get('model'),
-            prompt=request_data.get('prompt')
-        )
+        if StatefulChatService.exists(user.user_id):
+            # Update existing config
+            chat_service = StatefulChatService(user)
+            config = chat_service.set_config(model=model, prompt=prompt)
+        else:
+            # Create new service with config
+            chat_service = StatefulChatService.create(user, model=model, prompt=prompt)
+            config = chat_service.config
         
         return flask.jsonify({
             "status": "success",
@@ -59,16 +62,12 @@ def config():
 def models():
     """Endpoint for getting available models."""
     try:
-        ollama_url = "http://host.docker.internal:11434/api/tags"
-        response = requests.get(ollama_url, timeout=3)
-        response.raise_for_status()
-        data = response.json()
-        models = [m['name'] for m in data.get('models', []) if 'name' in m]
+        models = LLMService.get_available_models()
         return flask.jsonify({"status": "success", "models": models}), 200
-    except requests.exceptions.RequestException as e:
-        log.error(f"Request error getting models: {str(e)}")
+    except ValueError as e:
+        log.error(f"Error getting models: {str(e)}")
         return flask.jsonify({
-            "error": f"Failed to get models: {str(e)}"
+            "error": str(e)
         }), 500
     except Exception as e:
         log.error(f"Unexpected error getting models: {str(e)}")

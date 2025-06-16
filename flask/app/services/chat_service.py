@@ -4,109 +4,195 @@ from .llm_service import LLMService
 from ddtrace import tracer
 from flask import current_app as app
 
+
 class ChatService:
-    """Service for handling chat operations."""
+    """Base class for chat services."""
+    
+    def __init__(self, model: str = None, prompt: str = None):
+        """Initialize the base chat service.
+        
+        Args:
+            model: Name of the Ollama model to use
+            prompt: Optional system prompt to use
+        """
+        if self.__class__ == ChatService:
+            raise TypeError("ChatService is an abstract class and cannot be instantiated directly")
+            
+        # Check Ollama status first
+        LLMService.check_ollama_status()
+        
+        # Initialize LLM service if model is provided
+        self.llm_service = LLMService(model=model, prompt=prompt) if model else None
+    
+    def process_message(self, messages):
+        """Process a message and return the response."""
+        if not self.llm_service:
+            raise RuntimeError("LLM service not initialized")
+        return self.llm_service.generate_response_sync(messages)
+    
+    def process_message_stream(self, messages):
+        """Process a message and return a streaming response generator.
+        
+        Args:
+            messages: List of message dictionaries with role and content
+            
+        Returns:
+            tuple: (generator, collected_content)
+                - generator: Yields SSE formatted chunks of the response
+                - collected_content: List to store content chunks as they're generated
+        """
+        if not self.llm_service:
+            raise RuntimeError("LLM service not initialized")
+            
+        response = self.llm_service.generate_response_stream(messages)
+        collected_content = []
+        
+        def generate():
+            try:
+                for line in response.iter_lines():
+                    if line:
+                        try:
+                            chunk = json.loads(line)
+                            if chunk.get("message", {}).get("content"):
+                                content = chunk["message"]["content"]
+                                collected_content.append(content)
+                                yield {'content': content}
+                        except json.JSONDecodeError:
+                            log.warning(f"Failed to parse chunk: {line}")
+                            continue
+            except Exception as e:
+                log.error(f"Error in stream processing: {str(e)}")
+                yield {'error': str(e)}
+            finally:
+                yield {'done': True}
+                
+        return generate, collected_content
+
+
+class StatelessChatService(ChatService):
+    """Service for handling chat requests without state persistence."""
+    pass
+
+
+class StatefulChatService(ChatService):
+    """Service for handling chat requests with state persistence."""
+    
+    @classmethod
+    def exists(cls, user_id):
+        """Check if a chat exists for the given user.
+        
+        Args:
+            user_id: User ID to check
+            
+        Returns:
+            bool: True if chat exists, False otherwise
+        """
+        config_key = f"chat_config:{user_id}"
+        return bool(app.redis_client.exists(config_key))
+    
+    @classmethod
+    def create(cls, user, model, prompt):
+        """Create a new chat service with initial config.
+        
+        Args:
+            user: User instance
+            model: Initial model to use
+            prompt: Initial prompt to use
+            
+        Returns:
+            StatefulChatService: New service instance
+        """
+        instance = cls.__new__(cls)
+        instance.user = user
+        instance.history_key = f"chat_history:{user.user_id}"
+        instance.config_key = f"chat_config:{user.user_id}"
+        instance.history = []
+        instance.config = {'model': model.strip(), 'prompt': prompt.strip()}
+        
+        # Save initial config
+        app.redis_client.hset(instance.config_key, mapping=instance.config)
+        
+        # Initialize base class
+        super(StatefulChatService, instance).__init__(
+            model=instance.config['model'],
+            prompt=instance.config['prompt']
+        )
+        
+        log.info(f"Created new chat service for user {instance.user.user_id}")
+        return instance
     
     @tracer.wrap(name="chat.initialize")
-    def __init__(self, redis_client, user):
-        """Initialize chat service and load history."""
-        self.redis_client = redis_client
+    def __init__(self, user):
+        """Initialize chat service and load state."""
+        
         self.user = user
         self.history_key = f"chat_history:{user.user_id}"
         self.config_key = f"chat_config:{user.user_id}"
-        self._config = None
-        self.history = []
         
-        # Always load history on initialization
-        self.load_history()
-        log.info(f"Initialized chat service for user {user.user_id}")
-        
-    @tracer.wrap(name="chat.load_history")
-    def load_history(self):
-        """Load chat history from storage and return if it exists."""
-        history = self.redis_client.get(self.history_key)
+        # Load history
+        history = app.redis_client.get(self.history_key)
         self.history = json.loads(history) if history else []
-        return bool(self.history)
         
-    @tracer.wrap(name="chat.save_history")
-    def save_history(self):
-        """Save chat history to storage."""
-        self.redis_client.set(self.history_key, json.dumps(self.history))
+        # Load config
+        config = app.redis_client.hgetall(self.config_key)
+        if not config:
+            log.error(f"No config set for user {self.user.user_id}")
+            raise ValueError(f"No configuration set for user {self.user.user_id}. Please set model and prompt first.")
+            
+        self.config = {
+            'model': config.get('model', ''),
+            'prompt': config.get('prompt', '')
+        }
+        log.info(f"Loaded config from Redis for user {self.user.user_id}: model={self.config['model']}, prompt={self.config['prompt'][:50]}...")
         
+        # Initialize base class with loaded config
+        super().__init__(model=self.config['model'], prompt=self.config['prompt'])
+        
+        log.info(f"Initialized chat service for user {self.user.user_id}")
+
     @tracer.wrap(name="chat.clear_history")
     def clear_history(self):
         """Clear chat history."""
-        # Clear history only
-        self.redis_client.delete(self.history_key)
+        app.redis_client.delete(self.history_key)
         self.history = []
         log.info(f"Cleared history for user {self.user.user_id}")
 
-    @tracer.wrap(name="chat.get_config")
-    def get_config(self):
-        """Get the current configuration (model and prompt)."""
-        if self._config is None:
-            # Try to get from storage
-            config = self.redis_client.hgetall(self.config_key)
-            if config:
-                log.info(f"Loaded config from Redis for user {self.user.user_id}: model={config.get('model', '')}, prompt={config.get('prompt', '')[:50]}...")
-                self._config = {
-                    'model': config.get('model', ''),
-                    'prompt': config.get('prompt', '')
-                }
-            else:
-                log.error(f"No config set for user {self.user.user_id}")
-                raise ValueError(f"No configuration set for user {self.user.user_id}. Please set model and prompt first.")
-        return self._config
-        
+    @tracer.wrap(name="chat.add_message")
+    def add_message(self, content, role):
+        """Add a message to history and persist it."""
+        self.history.append({"role": role, "content": content})
+        app.redis_client.set(self.history_key, json.dumps(self.history))
+        log.info(f"Added {role} message for user {self.user.user_id}, total messages: {len(self.history)}")
+
     @tracer.wrap(name="chat.set_config")
     def set_config(self, model=None, prompt=None):
         """Set new configuration values. Only updates provided values."""
-        if self._config is None:
-            self._config = {'model': '', 'prompt': ''}
-            
         if model is not None:
-            self._config['model'] = model.strip()
+            self.config['model'] = model.strip()
         if prompt is not None:
-            self._config['prompt'] = prompt.strip()
+            self.config['prompt'] = prompt.strip()
             
         # Update Redis
-        self.redis_client.hset(self.config_key, mapping={
-            'model': self._config['model'],
-            'prompt': self._config['prompt']
-        })
+        app.redis_client.hset(self.config_key, mapping=self.config)
+        
+        # Reinitialize LLM service with new config
+        self.llm_service = LLMService(model=self.config['model'], prompt=self.config['prompt'])
+        
         log.info(f"Updated config for user {self.user.user_id}")
-        return self._config
-        
-    @tracer.wrap(name="chat.add_message")
-    def add_message(self, content, role):
-        """Add a message to history."""
-        self.history.append({"role": role, "content": content})
-        self.save_history()
-        log.info(f"Added {role} message for user {self.user.user_id}, total messages: {len(self.history)}")
-        
+        return self.config
+
     @tracer.wrap(name="chat.process_message")
     def process_message(self, message_content):
         """Process a new message and return the response stream."""
         # Add user's message to history
         self.add_message(message_content, "user")
         
-        # Get streaming response from LLM using current model
-        return LLMService.generate_response_stream(self.history, self.get_config()['prompt'], self.get_config()['model'])
+        # Get streaming response from LLM using history
+        return super().process_message_stream(self.history)
         
     @tracer.wrap(name="chat.get_welcome_message")
     def get_welcome_message(self):
         """Get a streaming welcome message."""
-        return LLMService.generate_response_stream(
-            [{"role": "user", "content": "Please provide a brief, welcoming message."}],
-            self.get_config()['prompt'],
-            self.get_config()['model']
-        )
-
-    @tracer.wrap(name="chat.initialize_chat")
-    def initialize_chat_with_message(self, welcome_message):
-        """Initialize chat with a provided welcome message."""
-        log.info(f"Initializing chat for user {self.user.user_id}")
-        self.history = []
-        self.history.append({"role": "assistant", "content": welcome_message})
-        self.save_history()
-        return self.history 
+        return super().process_message_stream([
+            {"role": "user", "content": "Please provide a brief, welcoming message."}
+        ]) 

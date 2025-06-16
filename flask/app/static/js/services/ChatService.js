@@ -1,7 +1,9 @@
 class ChatService {
     static async checkChatExists() {
-        const response = await fetch('/ui/chat');
-        return response.json();
+        const response = await fetch('/ui/chat', {
+            method: 'HEAD'
+        });
+        return response.ok;  // true if 200, false if 404
     }
 
     static async loadConfig() {

@@ -1,4 +1,4 @@
-import { clearIcon, editIcon, sendIcon, saveIcon, cancelIcon, userIcon, recycleIcon, questionIcon } from './icons.js';
+import { clearIcon, editIcon, sendIcon, saveIcon, cancelIcon, userIcon, recycleIcon, questionIcon, restartIcon } from './icons.js';
 
 class ChatUI {
     constructor() {
@@ -15,6 +15,7 @@ class ChatUI {
         this.reloadPromptButton = document.getElementById('reload-prompt');
         this.helpButton = document.getElementById('help-button');
         this.closeHelpButton = document.getElementById('close-help');
+        this.restartButton = document.getElementById('restart-error');
 
         // Set button icons
         this.sendButton.innerHTML = sendIcon;
@@ -27,14 +28,16 @@ class ChatUI {
         this.reloadPromptButton.innerHTML = recycleIcon;
         this.helpButton.innerHTML = questionIcon;
         this.closeHelpButton.innerHTML = cancelIcon;
+        this.restartButton.innerHTML = restartIcon;
 
         // Setup help modal events
         this.helpModal = document.getElementById('help-modal');
         this.helpButton.addEventListener('click', () => this.showHelpModal());
         this.closeHelpButton.addEventListener('click', () => this.hideHelpModal());
-        this.helpModal.addEventListener('click', (e) => {
-            if (e.target === this.helpModal) this.hideHelpModal();
-        });
+
+        // Setup error modal events
+        this.errorModal = document.getElementById('error-modal');
+        this.restartButton.addEventListener('click', () => window.location.reload());
 
         // Setup input auto-resize
         this.input.addEventListener('input', () => this.autoResizeInput());
@@ -107,6 +110,15 @@ class ChatUI {
 
     hideHelpModal() {
         this.helpModal.classList.remove('show');
+    }
+
+    showErrorModal(message) {
+        document.getElementById('error-message').textContent = message;
+        this.errorModal.classList.add('show');
+    }
+
+    hideErrorModal() {
+        this.errorModal.classList.remove('show');
     }
 }
 

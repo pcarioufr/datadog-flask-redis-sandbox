@@ -1,13 +1,62 @@
 import json
 import flask
-from flask import current_app as app
+from flask import current_app as app, request
 from app.logs import log
-from app.services.chat_service import ChatService
-from app.services.llm_service import LLMService
+from app.services.chat_service import StatefulChatService, StatelessChatService
 from .auth import auth
 
 from ddtrace.llmobs import LLMObs
 from ddtrace.llmobs.decorators import llm
+
+
+def create_stream_response(generate, collected_content, after_request=None):
+    """Create a Flask SSE response from a generator.
+    
+    Args:
+        generate: Generator function that yields message chunks
+        collected_content: List to store content chunks
+        after_request: Optional callback to execute after successful streaming
+        
+    Returns:
+        Flask Response object configured for SSE
+    """
+    streaming_completed = False
+    streaming_error = None
+    
+    # Capture the current Flask app instance
+    flask_app = flask.current_app._get_current_object()
+    
+    def stream_response():
+        nonlocal streaming_completed, streaming_error
+        try:
+            for chunk in generate():
+                if 'content' in chunk:
+                    yield f"data: {json.dumps({'content': chunk['content']})}\n\n"
+                elif 'error' in chunk:
+                    streaming_error = chunk['error']
+                    yield f"data: {json.dumps({'error': chunk['error']})}\n\n"
+                elif chunk.get('done'):
+                    streaming_completed = not streaming_error  # Only mark as completed if no errors
+                    yield "data: [DONE]\n\n"
+        except Exception as e:
+            log.error(f"Error during streaming: {str(e)}")
+            streaming_error = str(e)
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield "data: [DONE]\n\n"
+    
+    def wrapped_after_request():
+        if streaming_completed and after_request:
+            # Use the captured Flask app instance
+            with flask_app.app_context():
+                try:
+                    after_request()
+                except Exception as e:
+                    log.error(f"Error in after_request callback: {str(e)}")
+    
+    response = flask.Response(stream_response(), mimetype='text/event-stream')
+    if after_request:
+        response.call_on_close(wrapped_after_request)
+    return response
 
 
 @app.route("/ui/chat/init", methods=['GET'])
@@ -18,55 +67,39 @@ def welcome():
         user = auth()
         
         # Initialize chat service and get streaming welcome message
-        chat_service = ChatService(app.redis_client, user)
-        response = chat_service.get_welcome_message()
+        chat_service = StatefulChatService(user)
+        generate, collected_content = chat_service.get_welcome_message()
         
-        def generate():
-            collected_response = ""
-            try:
-                for line in response.iter_lines():
-                    if line:
-                        try:
-                            chunk = json.loads(line)
-                            if chunk.get("message", {}).get("content"):
-                                content = chunk["message"]["content"]
-                                collected_response += content
-                                yield f"data: {json.dumps({'content': content})}\n\n"
-                        except json.JSONDecodeError:
-                            log.warning(f"Failed to parse chunk: {line}")
-                            continue
+        # After streaming is done, initialize chat with the collected message
+        def after_request():
+            if collected_content:
+                chat_service.add_message("".join(collected_content).strip(), "assistant")
                 
-                # After streaming is done, initialize chat with the collected message
-                if collected_response:
-                    chat_service.initialize_chat_with_message(collected_response.strip())
-                    
-            except Exception as e:
-                log.error(f"Error in stream processing: {str(e)}")
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
-            finally:
-                yield "data: [DONE]\n\n"
-        
-        return flask.Response(generate(), mimetype='text/event-stream')
+        return create_stream_response(generate, collected_content, after_request)
             
     except Exception as e:
         log.error(f"Error getting welcome message: {str(e)}")
         return flask.jsonify({"error": str(e)}), 500
 
-@app.route("/ui/chat", methods=['GET', 'POST', 'DELETE'])
-def chat():
+@app.route("/ui/chat", methods=['GET', 'POST', 'DELETE', 'HEAD'])
+def ui_chat():
     """Chat endpoint handling streaming responses from Ollama."""
     try:
         # Authenticate user
         user = auth()
         
+        if flask.request.method == 'HEAD':
+            # For HEAD requests, just check if chat exists
+            exists = StatefulChatService.exists(user.user_id)
+            return '', 200 if exists else 404
+            
         # Initialize chat service
-        chat_service = ChatService(app.redis_client, user)
+        chat_service = StatefulChatService(user)
         
         if flask.request.method == 'GET':
-            # Load history (if any) and return chat status
-            exists = chat_service.load_history()
+            # Return chat status
             return flask.jsonify({
-                "exists": exists,
+                "exists": bool(chat_service.history),
                 "history": chat_service.history
             }), 200
             
@@ -82,50 +115,23 @@ def chat():
         
         try:
             # Process the message and get streaming response
-            response = chat_service.process_message(request_data["prompt"])
-            content_parts = []  # Use a list instead of string
-            
-            # Capture model name while we have app context
-            model_name = chat_service.get_config()['model']
-            
-            def generate():
-                try:
-                    for line in response.iter_lines():
-                        if line:
-                            try:
-                                chunk = json.loads(line)
-                                if chunk.get("message", {}).get("content"):
-                                    content = chunk["message"]["content"]
-                                    content_parts.append(content)  # Append to list instead of string concatenation
-                                    yield f"data: {json.dumps({'content': content})}\n\n"
-                            except json.JSONDecodeError:
-                                log.warning(f"Failed to parse chunk: {line}")
-                                continue
-                except Exception as e:
-                    log.error(f"Error in stream processing: {str(e)}")
-                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
-                finally:
-                    yield "data: [DONE]\n\n"
-            
-            # Create the response object
-            response_stream = flask.Response(generate(), mimetype='text/event-stream')
+            generate, collected_content = chat_service.process_message(request_data["prompt"])
             
             # After streaming starts, annotate the conversation
             def after_request():
-                if content_parts:  # Check if we collected any content
-                    collected_content = "".join(content_parts).strip()  # Join at the end
-                    collected_response = {"role": "assistant", "content": collected_content}
-                    with LLMObs.llm(model_name=model_name, model_provider="ollama") as span:
+                if collected_content:  # Check if we collected any content
+                    collected_response = "".join(collected_content).strip()
+                    response_data = {"role": "assistant", "content": collected_response}
+                    with LLMObs.llm(model_name=chat_service.config['model'], model_provider="ollama") as span:
                         LLMObs.annotate(
                             span=span,
                             input_data=chat_service.history,  # Include all messages including user's input
-                            output_data=collected_response
+                            output_data=response_data
                         )
                     # Save to chat history after successful streaming
-                    chat_service.add_message(collected_response["content"], "assistant")
+                    chat_service.add_message(response_data["content"], "assistant")
             
-            response_stream.call_on_close(after_request)
-            return response_stream
+            return create_stream_response(generate, collected_content, after_request)
                     
         except (json.JSONDecodeError, ValueError) as e:
             log.error(f"Error in Ollama request: {str(e)}")
@@ -142,44 +148,37 @@ def api_chat():
     
     Request body:
     {
-        "prompt": "The user message to respond to",
-        "system_prompt": "(optional) System prompt to control model behavior",
-        "model": "The model to use (e.g. 'mistral', 'llama2', etc.)"
+        "message": "The user message to respond to",
+        "prompt": "(optional) System prompt to control model behavior",
+        "model": "The model to use (e.g. 'mistral:latest', 'llama2:latest', etc.)"
     }
     """
     try:
-        request_data = flask.request.get_json()
-        if not request_data or 'prompt' not in request_data:
-            return flask.jsonify({
-                "error": "Missing prompt in request"
-            }), 400
+        # Get request data
+        request_data = request.get_json()
+        if not request_data:
+            return flask.jsonify({"error": "Empty request body"}), 400
             
-        if not request_data or 'model' not in request_data:
-            return flask.jsonify({
-                "error": "Missing model in request"
-            }), 400
+        if 'model' not in request_data:
+            return flask.jsonify({"error": "Missing model in request"}), 400
+            
+        if 'message' not in request_data:
+            return flask.jsonify({"error": "Missing message in request"}), 400
 
-        # Prepare messages for LLM
-        messages = []
-        if "system_prompt" in request_data:
-            messages.append({"role": "system", "content": request_data["system_prompt"]})
-        messages.append({"role": "user", "content": request_data["prompt"]})
-
-        # Get direct response from LLM service
-        response = LLMService.generate_response_sync(messages, request_data["model"])
+        # Initialize chat service with model and prompt
+        chat_service = StatelessChatService(
+            model=request_data['model'],
+            prompt=request_data.get('prompt')
+        )
         
-        # Annotate the complete conversation for LLM observability
-        with LLMObs.llm(model_name=request_data["model"], model_provider="ollama") as span:
-            LLMObs.annotate(
-                span=span,
-                input_data=messages,  # All messages before the response
-                output_data=response
-            )
-
-        return flask.jsonify({
-            "response": response
-        }), 200
+        # Process the message
+        messages = [{"role": "user", "content": request_data["message"]}]
+        response = chat_service.process_message(messages)
+        return flask.jsonify({"response": response})
             
+    except ValueError as e:
+        # Handle Ollama status errors
+        return flask.jsonify({"error": str(e)}), 503
     except Exception as e:
-        log.error(f"Error in API chat endpoint: {str(e)}")
-        return flask.jsonify({"error": str(e)}), 500 
+        log.error(f"Unexpected error in API chat endpoint: {str(e)}")
+        return flask.jsonify({"error": "Internal server error"}), 500 

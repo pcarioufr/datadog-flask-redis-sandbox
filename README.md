@@ -71,12 +71,12 @@ Your cookie expires when you close your browser.
 The application provides a programmatic API endpoint for direct chat interactions. No authentication, no streaming, no persistence. The system prompt is optional:
 
 ```bash
-curl -X POST http://localhost:5000/api/chat \
+curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "prompt": "What is the capital of France?",
-    "system_prompt": "You are a helpful assistant.",
-    "model": "mistral"
+    "message": "What is your favourite colour?",
+    "prompt": "YOU USE ONLY CAPITAL LETTERS IN YOUR RESPONSES. AND YOU HATE BLUE.",
+    "model": "mistral:latest"
   }'
 ```
 
