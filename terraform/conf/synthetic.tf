@@ -9,8 +9,9 @@ resource "datadog_synthetics_test" "api_test" {
     method = "POST"
     url    = "http://nginx:80/api/chat"
     body   = jsonencode({
-      prompt        = "What is your favorite color?",
-      system_prompt = "You must respond to all questions with text in CAPITAL LETTERS only."
+      message = "What is your favorite color?",
+      prompt  = "You must respond to all questions with text in CAPITAL LETTERS only.",
+      model   = "mistral:latest"
     })
     timeout = 30
   }
@@ -34,7 +35,7 @@ resource "datadog_synthetics_test" "api_test" {
   locations = ["${datadog_synthetics_private_location.local.id}"]
   
   options_list {
-    tick_every = 900  # Run every 15 minutes
+    tick_every = 300  # Run every 5 minutes
     retry {
       count    = 2
       interval = 300
