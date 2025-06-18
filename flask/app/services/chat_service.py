@@ -3,6 +3,7 @@ from app.logs import log
 from .llm_service import LLMService
 from ddtrace import tracer
 from flask import current_app as app
+from ddtrace.llmobs import LLMObs
 
 
 class ChatService:
@@ -31,42 +32,18 @@ class ChatService:
         return self.llm_service.generate_response_sync(messages)
     
     def process_message_stream(self, messages):
-        """Process a message and return a streaming response generator.
+        """Process a message and return the streaming response.
         
         Args:
             messages: List of message dictionaries with role and content
             
         Returns:
-            tuple: (generator, collected_content)
-                - generator: Yields SSE formatted chunks of the response
-                - collected_content: List to store content chunks as they're generated
+            requests.Response: The raw streaming response from Ollama
         """
         if not self.llm_service:
             raise RuntimeError("LLM service not initialized")
             
-        response = self.llm_service.generate_response_stream(messages)
-        collected_content = []
-        
-        def generate():
-            try:
-                for line in response.iter_lines():
-                    if line:
-                        try:
-                            chunk = json.loads(line)
-                            if chunk.get("message", {}).get("content"):
-                                content = chunk["message"]["content"]
-                                collected_content.append(content)
-                                yield {'content': content}
-                        except json.JSONDecodeError:
-                            log.warning(f"Failed to parse chunk: {line}")
-                            continue
-            except Exception as e:
-                log.error(f"Error in stream processing: {str(e)}")
-                yield {'error': str(e)}
-            finally:
-                yield {'done': True}
-                
-        return generate, collected_content
+        return self.llm_service.generate_response_stream(messages)
 
 
 class StatelessChatService(ChatService):
@@ -107,7 +84,14 @@ class StatefulChatService(ChatService):
         instance.history_key = f"chat_history:{user.user_id}"
         instance.config_key = f"chat_config:{user.user_id}"
         instance.history = []
-        instance.config = {'model': model.strip(), 'prompt': prompt.strip()}
+        # Validate and prepare config (consistent with set_config validation)
+        model = model.strip() if model else ""
+        prompt = prompt.strip() if prompt else ""
+        
+        if not model:
+            raise ValueError("Model cannot be empty")
+            
+        instance.config = {'model': model, 'prompt': prompt}
         
         # Save initial config
         app.redis_client.hset(instance.config_key, mapping=instance.config)
@@ -157,8 +141,8 @@ class StatefulChatService(ChatService):
         self.history = []
         log.info(f"Cleared history for user {self.user.user_id}")
 
-    @tracer.wrap(name="chat.add_message")
-    def add_message(self, content, role):
+    @tracer.wrap(name="chat._add_message")
+    def _add_message(self, content, role):
         """Add a message to history and persist it."""
         self.history.append({"role": role, "content": content})
         app.redis_client.set(self.history_key, json.dumps(self.history))
@@ -166,11 +150,28 @@ class StatefulChatService(ChatService):
 
     @tracer.wrap(name="chat.set_config")
     def set_config(self, model=None, prompt=None):
-        """Set new configuration values. Only updates provided values."""
+        """Set new configuration values. Only updates provided values.
+        
+        Args:
+            model: Model name to set (will be stripped of whitespace)
+            prompt: System prompt to set (will be stripped of whitespace)
+            
+        Returns:
+            dict: Updated configuration
+            
+        Raises:
+            ValueError: If model or prompt are empty strings after stripping
+        """
         if model is not None:
-            self.config['model'] = model.strip()
+            model = model.strip()
+            if not model:
+                raise ValueError("Model cannot be empty")
+            self.config['model'] = model
+            
         if prompt is not None:
-            self.config['prompt'] = prompt.strip()
+            prompt = prompt.strip()
+            # Allow empty prompt (user might want no system prompt)
+            self.config['prompt'] = prompt
             
         # Update Redis
         app.redis_client.hset(self.config_key, mapping=self.config)
@@ -181,18 +182,74 @@ class StatefulChatService(ChatService):
         log.info(f"Updated config for user {self.user.user_id}")
         return self.config
 
-    @tracer.wrap(name="chat.process_message")
-    def process_message(self, message_content):
-        """Process a new message and return the response stream."""
+    def _create_cleanup_callback(self, input_messages):
+        """Create a cleanup callback for handling persistence and telemetry.
+        
+        Args:
+            input_messages: The messages that were sent to the LLM
+            
+        Returns:
+            callable: Cleanup callback function
+        """
+        
+        def cleanup_callback(complete_response):
+            """Handle persistence and telemetry after streaming completes."""
+            try:
+                # Handle LLM observability telemetry
+                with LLMObs.llm(model_name=self.config['model'], model_provider="ollama") as span:
+                    LLMObs.annotate(
+                        span=span,
+                        input_data=input_messages,
+                        output_data={"role": "assistant", "content": complete_response}
+                    )
+                
+                # Persist the assistant's response
+                self._add_message(complete_response, "assistant")
+                log.info(f"Persisted complete response ({len(complete_response)} chars)")
+                
+            except Exception as e:
+                log.error(f"Error in cleanup callback: {str(e)}")
+        
+        return cleanup_callback
+
+    @tracer.wrap(name="chat.process_message_stream")
+    def process_message_stream(self, message_content):
+        """Process a new message and return the streaming response with cleanup callback.
+        
+        Args:
+            message_content: The message to process
+            
+        Returns:
+            tuple: (requests.Response, cleanup_callback)
+                - requests.Response: The raw streaming response from Ollama
+                - cleanup_callback: Function to call with complete response for persistence/telemetry
+        """
         # Add user's message to history
-        self.add_message(message_content, "user")
+        self._add_message(message_content, "user")
+        log.info(f"Added user message to history: {message_content[:50]}...")
         
         # Get streaming response from LLM using history
-        return super().process_message_stream(self.history)
+        response = super().process_message_stream(self.history)
         
-    @tracer.wrap(name="chat.get_welcome_message")
-    def get_welcome_message(self):
-        """Get a streaming welcome message."""
-        return super().process_message_stream([
-            {"role": "user", "content": "Please provide a brief, welcoming message."}
-        ]) 
+        # Create cleanup callback
+        cleanup_callback = self._create_cleanup_callback(self.history)
+        
+        return response, cleanup_callback
+        
+    @tracer.wrap(name="chat.get_welcome_message_stream")
+    def get_welcome_message_stream(self):
+        """Get a streaming welcome message with cleanup callback.
+        
+        Returns:
+            tuple: (requests.Response, cleanup_callback)
+        """
+        # Define welcome message
+        welcome_messages = [{"role": "user", "content": "Please provide a brief, welcoming message."}]
+        
+        # Get streaming response from LLM
+        response = super().process_message_stream(welcome_messages)
+        
+        # Create cleanup callback (note: welcome prompt is not persisted in history)
+        cleanup_callback = self._create_cleanup_callback(welcome_messages)
+        
+        return response, cleanup_callback 

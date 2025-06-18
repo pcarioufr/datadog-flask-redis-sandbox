@@ -5,58 +5,50 @@ from app.logs import log
 from app.services.chat_service import StatefulChatService, StatelessChatService
 from .auth import auth
 
-from ddtrace.llmobs import LLMObs
-from ddtrace.llmobs.decorators import llm
 
-
-def create_stream_response(generate, collected_content, after_request=None):
-    """Create a Flask SSE response from a generator.
+def create_sse_response(response, cleanup_callback=None):
+    """Create a Server-Sent Events (SSE) response from a streaming response.
     
     Args:
-        generate: Generator function that yields message chunks
-        collected_content: List to store content chunks
-        after_request: Optional callback to execute after successful streaming
+        response: requests.Response object from Ollama
+        cleanup_callback: Optional callback function to execute after streaming completes
         
     Returns:
         Flask Response object configured for SSE
     """
-    streaming_completed = False
-    streaming_error = None
-    
-    # Capture the current Flask app instance
-    flask_app = flask.current_app._get_current_object()
+    # Get the app context before creating the generator
+    ctx = app.app_context()
+    collected_chunks = []
     
     def stream_response():
-        nonlocal streaming_completed, streaming_error
         try:
-            for chunk in generate():
-                if 'content' in chunk:
-                    yield f"data: {json.dumps({'content': chunk['content']})}\n\n"
-                elif 'error' in chunk:
-                    streaming_error = chunk['error']
-                    yield f"data: {json.dumps({'error': chunk['error']})}\n\n"
-                elif chunk.get('done'):
-                    streaming_completed = not streaming_error  # Only mark as completed if no errors
-                    yield "data: [DONE]\n\n"
+            for line in response.iter_lines():
+                if line:
+                    try:
+                        chunk = json.loads(line)
+                        if chunk.get("message", {}).get("content"):
+                            content = chunk["message"]["content"]
+                            collected_chunks.append(content)
+                            yield f"data: {json.dumps({'content': content})}\n\n"
+                    except json.JSONDecodeError:
+                        log.warning(f"Failed to parse chunk: {line}")
+                        continue
+            
+            # After all chunks collected, execute cleanup callback if provided
+            if cleanup_callback and collected_chunks:
+                # Use the app context for the cleanup operation
+                with ctx:
+                    complete_response = "".join(collected_chunks).strip()
+                    cleanup_callback(complete_response)
+            
+            yield "data: [DONE]\n\n"
+            
         except Exception as e:
             log.error(f"Error during streaming: {str(e)}")
-            streaming_error = str(e)
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
             yield "data: [DONE]\n\n"
     
-    def wrapped_after_request():
-        if streaming_completed and after_request:
-            # Use the captured Flask app instance
-            with flask_app.app_context():
-                try:
-                    after_request()
-                except Exception as e:
-                    log.error(f"Error in after_request callback: {str(e)}")
-    
-    response = flask.Response(stream_response(), mimetype='text/event-stream')
-    if after_request:
-        response.call_on_close(wrapped_after_request)
-    return response
+    return flask.Response(stream_response(), mimetype='text/event-stream')
 
 
 @app.route("/ui/chat/init", methods=['GET'])
@@ -66,16 +58,11 @@ def welcome():
         # Authenticate user
         user = auth()
         
-        # Initialize chat service and get streaming welcome message
+        # Initialize chat service and get streaming response with cleanup callback
         chat_service = StatefulChatService(user)
-        generate, collected_content = chat_service.get_welcome_message()
+        response, cleanup_callback = chat_service.get_welcome_message_stream()
         
-        # After streaming is done, initialize chat with the collected message
-        def after_request():
-            if collected_content:
-                chat_service.add_message("".join(collected_content).strip(), "assistant")
-                
-        return create_stream_response(generate, collected_content, after_request)
+        return create_sse_response(response, cleanup_callback)
             
     except Exception as e:
         log.error(f"Error getting welcome message: {str(e)}")
@@ -114,24 +101,9 @@ def ui_chat():
         request_data = flask.request.get_json()
         
         try:
-            # Process the message and get streaming response
-            generate, collected_content = chat_service.process_message(request_data["prompt"])
-            
-            # After streaming starts, annotate the conversation
-            def after_request():
-                if collected_content:  # Check if we collected any content
-                    collected_response = "".join(collected_content).strip()
-                    response_data = {"role": "assistant", "content": collected_response}
-                    with LLMObs.llm(model_name=chat_service.config['model'], model_provider="ollama") as span:
-                        LLMObs.annotate(
-                            span=span,
-                            input_data=chat_service.history,  # Include all messages including user's input
-                            output_data=response_data
-                        )
-                    # Save to chat history after successful streaming
-                    chat_service.add_message(response_data["content"], "assistant")
-            
-            return create_stream_response(generate, collected_content, after_request)
+            # Process the message and get streaming response with cleanup callback
+            response, cleanup_callback = chat_service.process_message_stream(request_data["prompt"])
+            return create_sse_response(response, cleanup_callback)
                     
         except (json.JSONDecodeError, ValueError) as e:
             log.error(f"Error in Ollama request: {str(e)}")
