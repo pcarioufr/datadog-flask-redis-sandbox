@@ -11,6 +11,8 @@ class ChatManager {
         this.promptEditor = document.getElementById("prompt-editor");
         this.modelRadioGroup = document.getElementById("model-radio-group");
         this.savePromptButton = document.getElementById('save-prompt');
+        this.modal = document.getElementById('prompt-modal');
+        this.userModal = document.getElementById('user-modal');
         
         // Initialize event listeners
         this.setupEventListeners();
@@ -30,13 +32,10 @@ class ChatManager {
         const editPromptButton = document.getElementById('edit-prompt-button');
         const cancelButton = document.getElementById('cancel-prompt');
         const reloadButton = document.getElementById('reload-prompt');
-        this.modal = document.getElementById('prompt-modal');
 
-        editPromptButton.addEventListener('click', () => this.showPromptModal(false, false));
+        editPromptButton.addEventListener('click', () => this.showConfigModal());
         cancelButton.addEventListener('click', () => this.hidePromptModal());
         reloadButton.addEventListener('click', () => this.reloadDefaultPrompt());
-
-        // Regular save button handler
         this.savePromptButton.addEventListener('click', async () => {
             await this.savePromptAndModel();
         });
@@ -44,21 +43,152 @@ class ChatManager {
         // Setup user modal events
         const editUserButton = document.getElementById('edit-user-button');
         const cancelUserButton = document.getElementById('cancel-user');
-        this.userModal = document.getElementById('user-modal');
 
         editUserButton.addEventListener('click', () => this.showUserModal());
         cancelUserButton.addEventListener('click', () => this.hideUserModal());
     }
 
-    async loadCurrentModel() {
+    /**
+     * Initialize a fresh chat (either new or after clearing)
+     */
+    async initializeFreshChat() {
+        this.ui.clearMessages();
+        await this.showConfigModalForNewChat();
+        await this.getWelcomeMessage();
+    }
+
+    /**
+     * Load existing chat history and configuration
+     */
+    async loadExistingChat() {
         try {
-            const response = await ChatService.loadConfig();
-            if (response.status === 'success' && response.model) {
-                this.updateModelSelection(response.model);
-            }
+            const chatData = await fetch('/ui/chat').then(r => r.json());
+            chatData.history.forEach(msg => {
+                this.ui.addMessage(msg.content, msg.role === 'user');
+            });
+            this.ui.setInputState(true);
         } catch (error) {
-            console.error('Error loading current configuration:', error);
+            console.error('Error loading existing chat:', error);
+            this.ui.showErrorModal('**Failed to load chat history**\n\nPlease refresh the page and try again.');
         }
+    }
+
+    /**
+     * Show configuration modal for new chats (blocks until saved)
+     */
+    async showConfigModalForNewChat() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // Load models and default prompt
+                await this.loadModelsAndDefaultPrompt();
+                
+                // Show modal with no close button
+                this.modal.classList.add('show');
+                this.modal.querySelector('#cancel-prompt').style.display = 'none';
+                this.promptEditor.focus();
+
+                // Wait for save
+                const saveHandler = async () => {
+                    const success = await this.savePromptAndModel();
+                    if (success) {
+                        resolve();
+                    }
+                };
+
+                this.savePromptButton.addEventListener('click', saveHandler, { once: true });
+                
+            } catch (error) {
+                console.error('Error setting up new chat modal:', error);
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * Show configuration modal for editing existing settings
+     */
+    async showConfigModal() {
+        try {
+            // Load current config and models
+            await this.loadModelsAndCurrentConfig();
+            
+            // Show modal with close button
+            this.modal.classList.add('show');
+            this.modal.querySelector('#cancel-prompt').style.display = '';
+            this.promptEditor.focus();
+            
+        } catch (error) {
+            console.error('Error showing config modal:', error);
+            this.ui.showErrorModal('**Failed to load configuration**\n\nThere was an issue loading your chat settings. Please check your connection and try again.');
+        }
+    }
+
+    /**
+     * Load available models and default prompt (for new chats)
+     */
+    async loadModelsAndDefaultPrompt() {
+        // Load models
+        const modelsResponse = await ChatService.getAvailableModels();
+        if (modelsResponse.status === 'success' && Array.isArray(modelsResponse.models)) {
+            this.populateModelOptions(modelsResponse.models);
+            // Select first model by default
+            if (modelsResponse.models.length > 0) {
+                this.modelRadioGroup.querySelector('.radio-option').classList.add('selected');
+            }
+        }
+
+        // Load default prompt
+        const promptResponse = await ChatService.loadDefaultPrompt();
+        if (promptResponse.status === 'success') {
+            this.promptEditor.value = promptResponse.prompt;
+        } else {
+            console.error('Failed to load default prompt:', promptResponse.error);
+            this.promptEditor.value = '';
+        }
+    }
+
+    /**
+     * Load current configuration and available models (for existing chats)
+     */
+    async loadModelsAndCurrentConfig() {
+        // Load models
+        const modelsResponse = await ChatService.getAvailableModels();
+        if (modelsResponse.status === 'success' && Array.isArray(modelsResponse.models)) {
+            this.populateModelOptions(modelsResponse.models);
+        }
+
+        // Load current config
+        const configResponse = await ChatService.loadConfig();
+        if (configResponse.status === 'success') {
+            this.currentPrompt = configResponse.prompt || '';
+            this.promptEditor.value = this.currentPrompt;
+            if (configResponse.model) {
+                this.updateModelSelection(configResponse.model);
+            }
+        }
+    }
+
+    /**
+     * Populate model radio options
+     */
+    populateModelOptions(models) {
+        this.modelRadioGroup.innerHTML = '';
+        models.forEach((model) => {
+            const option = document.createElement('div');
+            option.className = 'radio-option';
+            option.dataset.model = model;
+            option.textContent = model;
+            
+            // Add click handler
+            option.addEventListener('click', () => {
+                this.modelRadioGroup.querySelectorAll('.radio-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                option.classList.add('selected');
+            });
+            
+            this.modelRadioGroup.appendChild(option);
+        });
     }
 
     updateModelSelection(selectedModel) {
@@ -70,78 +200,6 @@ class ChatManager {
                 option.classList.remove('selected');
             }
         });
-    }
-
-    async showPromptModal(hideCloseButtons = false, isNewChat = false) {
-        this.modal.classList.add('show');
-        
-        try {
-            // Always load available models
-            const modelsResponse = await ChatService.getAvailableModels();
-
-            if (modelsResponse.status === 'success' && Array.isArray(modelsResponse.models)) {
-                this.modelRadioGroup.innerHTML = '';
-                modelsResponse.models.forEach((model, index) => {
-                    const option = document.createElement('div');
-                    option.className = 'radio-option';
-                    option.dataset.model = model;
-                    option.textContent = model;
-                    
-                    // Add click handler
-                    option.addEventListener('click', () => {
-                        if (option.classList.contains('selected')) {
-                            // If already selected, deselect it
-                            option.classList.remove('selected');
-                        } else {
-                            // Deselect all other options and select this one
-                            this.modelRadioGroup.querySelectorAll('.radio-option').forEach(opt => {
-                                opt.classList.remove('selected');
-                            });
-                            option.classList.add('selected');
-                        }
-                    });
-                    
-                    this.modelRadioGroup.appendChild(option);
-
-                    // For new chats, select the first model by default
-                    if (isNewChat && index === 0) {
-                        option.classList.add('selected');
-                    }
-                });
-        }
-        
-        if (isNewChat) {
-                // For new chats, just load the default prompt
-                const response = await ChatService.loadDefaultPrompt();
-                if (response.status === 'success') {
-                    this.promptEditor.value = response.prompt;
-                } else {
-                    console.error('Failed to load default prompt:', response.error);
-                this.promptEditor.value = '';
-            }
-        } else {
-                // For existing chats, load current config
-                const configResponse = await ChatService.loadConfig();
-                if (configResponse.status === 'success') {
-                    this.currentPrompt = configResponse.prompt || '';
-                    this.promptEditor.value = this.currentPrompt;
-                    if (configResponse.model) {
-                        this.updateModelSelection(configResponse.model);
-                    }
-                }
-                    }
-                } catch (error) {
-            console.error('Error in prompt modal setup:', error);
-            // For new chats, we can continue with empty prompt and first model
-            if (!isNewChat) {
-                this.ui.showErrorModal('**Failed to load configuration**\n\nThere was an issue loading your chat settings. Please check your connection and try again.');
-            }
-        }
-        
-        this.promptEditor.focus();
-
-        const cancelButton = this.modal.querySelector('#cancel-prompt');
-        cancelButton.style.display = hideCloseButtons ? 'none' : '';
     }
 
     hidePromptModal() {
@@ -197,6 +255,7 @@ class ChatManager {
         const tokenBuffer = new TokenBuffer(20, 50, container, this.ui);
         const streamProcessor = new StreamProcessor(tokenBuffer);
 
+        this.setProcessingState(true);
         try {
             const response = await ChatService.getWelcomeMessage();
             await streamProcessor.processStream(response);
@@ -204,25 +263,19 @@ class ChatManager {
             console.error('Error getting welcome message:', error);
             container.loadingDots.remove();
             this.ui.addMessage('Failed to get welcome message. Please try again.', false);
-            throw error; // Re-throw to let caller handle it
+            throw error;
+        } finally {
+            this.setProcessingState(false);
         }
     }
 
     async clearHistory() {
-        this.setProcessingState(true);
-        this.ui.clearMessages();
-
         try {
-            // 1. Delete existing chat
             await ChatService.clearChat();
-            
-            // 2. Get new welcome message
-            await this.getWelcomeMessage();
+            await this.initializeFreshChat();
         } catch (error) {
             console.error('Error clearing chat:', error);
             this.ui.addMessage('Failed to clear chat history. Please try again.', false);
-        } finally {
-            this.setProcessingState(false);
         }
     }
 
@@ -253,20 +306,6 @@ class ChatManager {
         } finally {
             this.setProcessingState(false);
         }
-    }
-
-    // Method to wait for prompt save
-    waitForPromptSave() {
-        return new Promise((resolve) => {
-            const saveHandler = async () => {
-                const success = await this.savePromptAndModel();
-                if (success) {
-                    resolve();
-                }
-            };
-
-            this.savePromptButton.addEventListener('click', saveHandler, { once: true });
-        });
     }
 
     async reloadDefaultPrompt() {
