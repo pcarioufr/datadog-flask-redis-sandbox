@@ -33,27 +33,27 @@ class LLMService:
         # Test error simulation
         if app.config['TEST_OLLAMA_DOWN']:
             log.warning("TEST MODE: Simulating Ollama being down")
-            raise ValueError("Cannot connect to Ollama. Please make sure it's running.")
+            raise ValueError("Cannot connect to Ollama, please make sure it's running.\n\nInstall [Ollama](https://ollama.com), and run `ollama serve`")
             
         if app.config['TEST_OLLAMA_NOMODEL']:
             log.warning("TEST MODE: Simulating no models available in Ollama")
-            raise ValueError("No models available in Ollama")
+            raise ValueError("**No models available**\n\nPlease install a model first. For example:\n\n`ollama pull mistral`")
             
         try:
             # First check if Ollama is running
             response = requests.get(f"{cls.OLLAMA_HOST}/api/tags")
             if response.status_code != 200:
-                raise ValueError("Ollama is not running")
+                raise ValueError("**Ollama is not responding**\n\nPlease make sure Ollama is running with `ollama serve`")
             
             # Then check if there are any models
             models = response.json().get('models', [])
             if not models:
-                raise ValueError("No models available in Ollama")
+                raise ValueError("**No models available**\n\nPlease install a model first. For example:\n\n`ollama pull mistral`")
                 
         except requests.exceptions.ConnectionError:
-            raise ValueError("Cannot connect to Ollama. Please make sure it's running.")
+            raise ValueError("Cannot connect to Ollama, please make sure it's running.\n\nInstall [Ollama](https://ollama.com), and run `ollama serve`")
         except Exception as e:
-            raise ValueError(f"Error checking Ollama status: {str(e)}")
+            raise ValueError(f"**Error checking Ollama status**\n\n{str(e)}\n\nPlease check your Ollama installation.")
     
     def __init__(self, model: str, prompt: str = None):
         """Initialize the LLM service and validate the model.

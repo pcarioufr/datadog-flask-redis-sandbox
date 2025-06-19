@@ -45,7 +45,10 @@ async function initializeChat() {
     } catch (error) {
         console.error('Error initializing chat:', error);
         const chatManager = new ChatManager();
-        chatManager.ui.showErrorModal(error.message || 'Failed to initialize chat. Please make sure Ollama is running and try again.');
+        
+        // Use the error message from the backend directly
+        const errorMessage = error.message || 'Failed to initialize chat. Please try again.';
+        chatManager.ui.showErrorModal(errorMessage);
     }
 }
 

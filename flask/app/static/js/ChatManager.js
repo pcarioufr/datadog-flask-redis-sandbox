@@ -78,7 +78,7 @@ class ChatManager {
         try {
             // Always load available models
             const modelsResponse = await ChatService.getAvailableModels();
-            
+
             if (modelsResponse.status === 'success' && Array.isArray(modelsResponse.models)) {
                 this.modelRadioGroup.innerHTML = '';
                 modelsResponse.models.forEach((model, index) => {
@@ -108,18 +108,18 @@ class ChatManager {
                         option.classList.add('selected');
                     }
                 });
-            }
-
-            if (isNewChat) {
+        }
+        
+        if (isNewChat) {
                 // For new chats, just load the default prompt
                 const response = await ChatService.loadDefaultPrompt();
                 if (response.status === 'success') {
                     this.promptEditor.value = response.prompt;
                 } else {
                     console.error('Failed to load default prompt:', response.error);
-                    this.promptEditor.value = '';
-                }
-            } else {
+                this.promptEditor.value = '';
+            }
+        } else {
                 // For existing chats, load current config
                 const configResponse = await ChatService.loadConfig();
                 if (configResponse.status === 'success') {
@@ -129,12 +129,12 @@ class ChatManager {
                         this.updateModelSelection(configResponse.model);
                     }
                 }
-            }
-        } catch (error) {
+                    }
+                } catch (error) {
             console.error('Error in prompt modal setup:', error);
             // For new chats, we can continue with empty prompt and first model
             if (!isNewChat) {
-                this.ui.showErrorModal('Failed to load configuration. Please try again.');
+                this.ui.showErrorModal('**Failed to load configuration**\n\nThere was an issue loading your chat settings. Please check your connection and try again.');
             }
         }
         

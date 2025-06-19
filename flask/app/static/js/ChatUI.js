@@ -113,7 +113,27 @@ class ChatUI {
     }
 
     showErrorModal(message) {
-        document.getElementById('error-message').textContent = message;
+        const errorMessageElement = document.getElementById('error-message');
+        
+        // Simple markdown parsing for error messages only
+        const markdownToHtml = (text) => {
+            return text
+                // Convert [text](url) to <a href="url" target="_blank" rel="noopener">text</a>
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+                // Convert `code` to <code>code</code>
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                // Convert **bold** to <strong>bold</strong>
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                // Convert *italic* to <em>italic</em>
+                .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+                // Convert double line breaks to paragraph breaks
+                .replace(/\n\n/g, '</p><p>')
+                // Wrap in paragraph tags
+                .replace(/^(.*)$/s, '<p>$1</p>');
+        };
+        
+        // Set HTML content with markdown parsing
+        errorMessageElement.innerHTML = markdownToHtml(message);
         this.errorModal.classList.add('show');
     }
 

@@ -42,6 +42,48 @@
     width: 400px;
 }
 
+/* Error modal specific markdown styling */
+.modal-content.error .modal-body {
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.modal-content.error .modal-body p {
+    margin: var(--spacing-md) 0;
+    white-space: pre-line; /* Preserve line breaks */
+}
+
+.modal-content.error .modal-body a {
+    color: var(--beige);
+    text-decoration: underline;
+    font-weight: var(--fw-medium);
+    transition: color 0.2s ease;
+}
+
+.modal-content.error .modal-body a:hover {
+    color: white;
+}
+
+.modal-content.error .modal-body code {
+    background: var(--ddark);
+    color: var(--green);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 14px;
+    font-weight: var(--fw-medium);
+}
+
+.modal-content.error .modal-body strong {
+    color: var(--beige);
+    font-weight: var(--fw-medium);
+}
+
+.modal-content.error .modal-body em {
+    color: var(--beige);
+    font-style: italic;
+}
+
 .modal.show .modal-content {
     transform: translateY(0);
 }
