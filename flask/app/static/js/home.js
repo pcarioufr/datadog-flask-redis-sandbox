@@ -1,6 +1,4 @@
 import ChatManager from './ChatManager.js';
-import TokenBuffer from './stream/TokenBuffer.js';
-import StreamProcessor from './stream/StreamProcessor.js';
 import ChatService from './services/ChatService.js';
 
 // Main initialization flow
